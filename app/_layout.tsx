@@ -1,24 +1,23 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+import { ProgressProvider } from '@/contexts/progress-context';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+    <ProgressProvider>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: '#87CEEB' },
+        }}>
+        <Stack.Screen name="index" options={{ title: 'School Entrance' }} />
+        <Stack.Screen name="locker" options={{ title: 'Your Locker' }} />
+        <Stack.Screen name="games/math" options={{ title: 'Math Game' }} />
+        <Stack.Screen name="games/reading" options={{ title: 'Reading Game' }} />
+        <Stack.Screen name="games/science" options={{ title: 'Science Game' }} />
       </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+      <StatusBar style="dark" />
+    </ProgressProvider>
   );
 }
