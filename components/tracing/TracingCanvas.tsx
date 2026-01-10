@@ -28,6 +28,8 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
   const [activeStrokeIndex, setActiveStrokeIndex] = useState(0);
   const [coveredPoints, setCoveredPoints] = useState<Set<string>>(new Set());
   const [isCompleted, setIsCompleted] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const rafIdRef = useRef<number | null>(null);
 
   // Scale letter coordinates to canvas size
   const scalePoint = (p: Point): Point => ({
@@ -85,11 +87,11 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
 
     // Calculate progress
     const totalPoints = letter.strokes.reduce((sum, stroke) => sum + stroke.points.length, 0);
-    const progress = newCoveredPoints.size / totalPoints;
-    onProgressUpdate(progress);
+    const calculatedProgress = newCoveredPoints.size / totalPoints;
+    setProgress(calculatedProgress);
 
     // Check if letter is complete
-    if (progress >= LETTER_COMPLETION_THRESHOLD && !isCompleted) {
+    if (calculatedProgress >= LETTER_COMPLETION_THRESHOLD && !isCompleted) {
       setIsCompleted(true);
       setTimeout(() => {
         onLetterComplete();
@@ -158,6 +160,27 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
       },
     })
   ).current;
+
+  // Throttled progress update using requestAnimationFrame
+  useEffect(() => {
+    // Cancel any pending animation frame
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+    }
+
+    // Schedule update for next animation frame
+    rafIdRef.current = requestAnimationFrame(() => {
+      onProgressUpdate(progress);
+      rafIdRef.current = null;
+    });
+
+    // Cleanup on unmount
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, [progress, onProgressUpdate]);
 
   // Convert stroke points to SVG path
   const strokeToPath = (stroke: UserStrokePoint[]): string => {
