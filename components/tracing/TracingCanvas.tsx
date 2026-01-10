@@ -5,9 +5,12 @@ import type { LetterDefinition, Point } from '@/data/letters';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CANVAS_SIZE = Math.min(screenWidth - 40, 400);
-const COVERAGE_RADIUS = 30; // How close user stroke must be to target point
-const LETTER_COMPLETION_THRESHOLD = 0.72; // 72% to complete a letter
+const COVERAGE_RADIUS = 70; // Day 1 Easy Mode: very forgiving hit detection
+const LETTER_COMPLETION_THRESHOLD = 0.30; // Day 1 Easy Mode: 30% to complete
+const STROKE_ADVANCE_THRESHOLD = 0.20; // Day 1 Easy Mode: 20% to advance stroke
 const INTERPOLATION_STEP = 8; // Generate intermediate points every ~8px
+const AUTO_COMPLETE_DISTANCE = 2500; // Auto-complete if drawn this much distance
+const AUTO_COMPLETE_TIME = 3000; // Auto-complete after 3 seconds of effort (ms)
 
 interface TracingCanvasProps {
   letter: LetterDefinition;
@@ -30,6 +33,10 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
   const [isCompleted, setIsCompleted] = useState(false);
   const [progress, setProgress] = useState(0);
   const rafIdRef = useRef<number | null>(null);
+
+  // Day 1 Easy Mode: track effort for auto-complete
+  const [totalDrawnDistance, setTotalDrawnDistance] = useState(0);
+  const [firstDrawTime, setFirstDrawTime] = useState<number | null>(null);
 
   // Scale letter coordinates to canvas size
   const scalePoint = (p: Point): Point => ({
@@ -65,24 +72,40 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
     return points;
   };
 
+  // Day 1 Easy Mode: Check if effort-based auto-complete should trigger
+  const checkAutoComplete = () => {
+    if (isCompleted) return false;
+
+    const now = Date.now();
+    const timeSpent = firstDrawTime ? now - firstDrawTime : 0;
+
+    // Auto-complete if sufficient effort shown
+    if (totalDrawnDistance > AUTO_COMPLETE_DISTANCE ||
+        (timeSpent > AUTO_COMPLETE_TIME && totalDrawnDistance > 100)) {
+      return true;
+    }
+
+    return false;
+  };
+
   // Check which target points are covered by user strokes
   const checkCoverage = (userPoint: UserStrokePoint) => {
-    const activeStroke = letter.strokes[activeStrokeIndex];
-    if (!activeStroke) return;
-
     // Use functional update to avoid stale state in tight loops
     setCoveredPoints(prev => {
       const next = new Set(prev);
 
-      // Check points in the active stroke only
-      activeStroke.points.forEach((targetPoint, idx) => {
-        const scaledTarget = scalePoint(targetPoint);
-        const dist = distance(scaledTarget, userPoint);
+      // Day 1 Easy Mode: Check ALL strokes, not just active
+      // This removes strict stroke-order enforcement
+      letter.strokes.forEach((stroke, strokeIndex) => {
+        stroke.points.forEach((targetPoint, idx) => {
+          const scaledTarget = scalePoint(targetPoint);
+          const dist = distance(scaledTarget, userPoint);
 
-        if (dist < COVERAGE_RADIUS) {
-          const key = `${activeStrokeIndex}-${idx}`;
-          next.add(key);
-        }
+          if (dist < COVERAGE_RADIUS) {
+            const key = `${strokeIndex}-${idx}`;
+            next.add(key);
+          }
+        });
       });
 
       // Calculate progress from the fresh 'next' set
@@ -90,23 +113,27 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
       const calculatedProgress = next.size / totalPoints;
       setProgress(calculatedProgress);
 
-      // Check if letter is complete
-      if (calculatedProgress >= LETTER_COMPLETION_THRESHOLD && !isCompleted) {
+      // Check if letter is complete (either by progress or auto-complete)
+      const shouldAutoComplete = checkAutoComplete();
+      if ((calculatedProgress >= LETTER_COMPLETION_THRESHOLD || shouldAutoComplete) && !isCompleted) {
         setIsCompleted(true);
         setTimeout(() => {
           onLetterComplete();
         }, 300);
       } else {
-        // Check if current stroke is complete enough to advance
-        const activeStrokePoints = activeStroke.points.length;
-        const activeStrokeCovered = Array.from(next).filter(
-          key => key.startsWith(`${activeStrokeIndex}-`)
-        ).length;
-        const strokeProgress = activeStrokeCovered / activeStrokePoints;
+        // Day 1 Easy Mode: Still advance visual hint stroke, but with easier threshold
+        const activeStroke = letter.strokes[activeStrokeIndex];
+        if (activeStroke) {
+          const activeStrokePoints = activeStroke.points.length;
+          const activeStrokeCovered = Array.from(next).filter(
+            key => key.startsWith(`${activeStrokeIndex}-`)
+          ).length;
+          const strokeProgress = activeStrokeCovered / activeStrokePoints;
 
-        if (strokeProgress >= 0.60 && activeStrokeIndex < letter.strokes.length - 1) {
-          // Advance to next stroke
-          setActiveStrokeIndex(activeStrokeIndex + 1);
+          if (strokeProgress >= STROKE_ADVANCE_THRESHOLD && activeStrokeIndex < letter.strokes.length - 1) {
+            // Advance to next stroke hint
+            setActiveStrokeIndex(activeStrokeIndex + 1);
+          }
         }
       }
 
@@ -121,6 +148,10 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
       onPanResponderTerminationRequest: () => false,
       onPanResponderGrant: (evt) => {
         onTraceStart?.();
+        // Day 1 Easy Mode: Start tracking time on first draw
+        if (firstDrawTime === null) {
+          setFirstDrawTime(Date.now());
+        }
         const { locationX, locationY } = evt.nativeEvent;
         const point = { x: locationX, y: locationY };
         setCurrentStroke([point]);
@@ -135,6 +166,10 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
             // Interpolate between last point and new point
             const lastPoint = prev[prev.length - 1];
             const interpolated = interpolatePoints(lastPoint, point);
+
+            // Day 1 Easy Mode: Track drawn distance
+            const segmentDistance = distance(lastPoint, point);
+            setTotalDrawnDistance(d => d + segmentDistance);
 
             // Check coverage for all interpolated points
             interpolated.forEach(p => checkCoverage(p));
