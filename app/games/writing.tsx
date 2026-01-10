@@ -24,6 +24,7 @@ export default function WritingGame() {
   const [currentLetterIndex, setCurrentLetterIndex] = useState(0);
   const [lettersPassed, setLettersPassed] = useState<boolean[]>([]);
   const [currentProgress, setCurrentProgress] = useState(0);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
 
   const startGame = () => {
     // Randomize letter order
@@ -73,6 +74,14 @@ export default function WritingGame() {
 
   const handleProgressUpdate = (progress: number) => {
     setCurrentProgress(progress);
+  };
+
+  const handleTraceStart = () => {
+    setScrollEnabled(false);
+  };
+
+  const handleTraceEnd = () => {
+    setScrollEnabled(true);
   };
 
   const handleComplete = async () => {
@@ -164,7 +173,7 @@ export default function WritingGame() {
         </Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.gameArea}>
+      <ScrollView scrollEnabled={scrollEnabled} contentContainerStyle={styles.gameArea}>
         <View style={styles.instructionContainer}>
           <Text style={styles.instructionText}>
             Trace along the purple guide with your finger
@@ -175,6 +184,8 @@ export default function WritingGame() {
           letter={currentLetter}
           onLetterComplete={handleLetterComplete}
           onProgressUpdate={handleProgressUpdate}
+          onTraceStart={handleTraceStart}
+          onTraceEnd={handleTraceEnd}
         />
 
         <View style={styles.progressBarContainer}>

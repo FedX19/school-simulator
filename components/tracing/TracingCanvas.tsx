@@ -12,6 +12,8 @@ interface TracingCanvasProps {
   letter: LetterDefinition;
   onLetterComplete: () => void;
   onProgressUpdate: (progress: number) => void;
+  onTraceStart?: () => void;
+  onTraceEnd?: () => void;
 }
 
 interface UserStrokePoint {
@@ -19,7 +21,7 @@ interface UserStrokePoint {
   y: number;
 }
 
-export default function TracingCanvas({ letter, onLetterComplete, onProgressUpdate }: TracingCanvasProps) {
+export default function TracingCanvas({ letter, onLetterComplete, onProgressUpdate, onTraceStart, onTraceEnd }: TracingCanvasProps) {
   const [userStrokes, setUserStrokes] = useState<UserStrokePoint[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<UserStrokePoint[]>([]);
   const [activeStrokeIndex, setActiveStrokeIndex] = useState(0);
@@ -89,7 +91,9 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
+      onPanResponderTerminationRequest: () => false,
       onPanResponderGrant: (evt) => {
+        onTraceStart?.();
         const { locationX, locationY } = evt.nativeEvent;
         const point = { x: locationX, y: locationY };
         setCurrentStroke([point]);
@@ -102,6 +106,14 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
         checkCoverage(point);
       },
       onPanResponderRelease: () => {
+        onTraceEnd?.();
+        if (currentStroke.length > 0) {
+          setUserStrokes((prev) => [...prev, currentStroke]);
+          setCurrentStroke([]);
+        }
+      },
+      onPanResponderTerminate: () => {
+        onTraceEnd?.();
         if (currentStroke.length > 0) {
           setUserStrokes((prev) => [...prev, currentStroke]);
           setCurrentStroke([]);
