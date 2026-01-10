@@ -4,32 +4,60 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useProgress } from '@/contexts/progress-context';
 
-const { width } = Dimensions.get('window');
-
-interface SoundPair {
-  emoji: string;
+interface ColorPair {
   name: string;
-  sound: string;
-  options: string[];
+  color: string;
+  options: { name: string; color: string }[];
 }
 
-const SOUND_PAIRS: SoundPair[] = [
-  { emoji: '🐶', name: 'Dog', sound: 'Woof!', options: ['Woof!', 'Meow!', 'Moo!', 'Quack!'] },
-  { emoji: '🐱', name: 'Cat', sound: 'Meow!', options: ['Meow!', 'Woof!', 'Ribbit!', 'Roar!'] },
-  { emoji: '🐮', name: 'Cow', sound: 'Moo!', options: ['Moo!', 'Baa!', 'Neigh!', 'Oink!'] },
-  { emoji: '🐸', name: 'Frog', sound: 'Ribbit!', options: ['Ribbit!', 'Hiss!', 'Chirp!', 'Roar!'] },
-  { emoji: '🦁', name: 'Lion', sound: 'Roar!', options: ['Roar!', 'Meow!', 'Woof!', 'Moo!'] },
-  { emoji: '🐷', name: 'Pig', sound: 'Oink!', options: ['Oink!', 'Moo!', 'Quack!', 'Baa!'] },
-  { emoji: '🦆', name: 'Duck', sound: 'Quack!', options: ['Quack!', 'Chirp!', 'Hoot!', 'Woof!'] },
-  { emoji: '🐝', name: 'Bee', sound: 'Buzz!', options: ['Buzz!', 'Chirp!', 'Hiss!', 'Woof!'] },
+const COLORS: ColorPair[] = [
+  {
+    name: 'Red',
+    color: '#FF0000',
+    options: [
+      { name: 'Red', color: '#FF0000' },
+      { name: 'Blue', color: '#0000FF' },
+      { name: 'Yellow', color: '#FFFF00' },
+      { name: 'Green', color: '#00FF00' },
+    ]
+  },
+  {
+    name: 'Blue',
+    color: '#0000FF',
+    options: [
+      { name: 'Blue', color: '#0000FF' },
+      { name: 'Red', color: '#FF0000' },
+      { name: 'Purple', color: '#800080' },
+      { name: 'Orange', color: '#FFA500' },
+    ]
+  },
+  {
+    name: 'Yellow',
+    color: '#FFFF00',
+    options: [
+      { name: 'Yellow', color: '#FFFF00' },
+      { name: 'Green', color: '#00FF00' },
+      { name: 'Orange', color: '#FFA500' },
+      { name: 'Red', color: '#FF0000' },
+    ]
+  },
+  {
+    name: 'Green',
+    color: '#00FF00',
+    options: [
+      { name: 'Green', color: '#00FF00' },
+      { name: 'Blue', color: '#0000FF' },
+      { name: 'Yellow', color: '#FFFF00' },
+      { name: 'Purple', color: '#800080' },
+    ]
+  },
 ];
 
-export default function ScienceGame() {
+export default function ArtGame() {
   const router = useRouter();
   const { completeSubject } = useProgress();
   const [currentRound, setCurrentRound] = useState(0);
@@ -37,15 +65,15 @@ export default function ScienceGame() {
   const [showIntro, setShowIntro] = useState(true);
   const [showResults, setShowResults] = useState(false);
 
-  const totalRounds = 8;
-  const currentPair = SOUND_PAIRS[currentRound];
+  const totalRounds = 4;
+  const currentColor = COLORS[currentRound];
 
   const startGame = () => {
     setShowIntro(false);
   };
 
   const handleAnswer = (answer: string) => {
-    if (answer === currentPair.sound) {
+    if (answer === currentColor.name) {
       setScore(score + 1);
     }
 
@@ -57,7 +85,7 @@ export default function ScienceGame() {
   };
 
   const handleComplete = async () => {
-    await completeSubject('science');
+    await completeSubject('art');
     router.back();
   };
 
@@ -65,9 +93,9 @@ export default function ScienceGame() {
     return (
       <View style={styles.container}>
         <View style={styles.introContainer}>
-          <Text style={styles.introTitle}>🔊 Sound Matching 🔊</Text>
-          <Text style={styles.introText}>Match the animal with its sound!</Text>
-          <Text style={styles.introText}>What sound does each one make?</Text>
+          <Text style={styles.introTitle}>🎨 Color Match 🎨</Text>
+          <Text style={styles.introText}>Match the color name!</Text>
+          <Text style={styles.introText}>What color is this?</Text>
           <TouchableOpacity
             style={styles.startButton}
             onPress={startGame}>
@@ -82,13 +110,13 @@ export default function ScienceGame() {
     return (
       <View style={styles.container}>
         <View style={styles.resultsContainer}>
-          <Text style={styles.resultsTitle}>Great Listening!</Text>
+          <Text style={styles.resultsTitle}>Great Job!</Text>
           <Text style={styles.resultsScore}>You got {score} out of {totalRounds} correct!</Text>
-          <Text style={styles.resultsEmoji}>🔊✨</Text>
+          <Text style={styles.resultsEmoji}>🎨✨</Text>
           <TouchableOpacity
             style={styles.completeButton}
             onPress={handleComplete}>
-            <Text style={styles.completeButtonText}>Complete Science ✓</Text>
+            <Text style={styles.completeButtonText}>Complete Art ✓</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -98,25 +126,20 @@ export default function ScienceGame() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>What sound does it make?</Text>
-        <Text style={styles.progress}>Sound {currentRound + 1} of {totalRounds}</Text>
+        <Text style={styles.headerText}>What color is this?</Text>
+        <Text style={styles.progress}>Color {currentRound + 1} of {totalRounds}</Text>
       </View>
 
       <View style={styles.gameArea}>
-        {/* Animal */}
-        <View style={styles.animalContainer}>
-          <Text style={styles.animalEmoji}>{currentPair.emoji}</Text>
-          <Text style={styles.animalName}>{currentPair.name}</Text>
-        </View>
+        <View style={[styles.colorBox, { backgroundColor: currentColor.color }]} />
 
-        {/* Options */}
         <View style={styles.optionsContainer}>
-          {currentPair.options.map((option) => (
+          {currentColor.options.map((option) => (
             <TouchableOpacity
-              key={option}
-              style={styles.optionButton}
-              onPress={() => handleAnswer(option)}>
-              <Text style={styles.optionText}>{option}</Text>
+              key={option.name}
+              style={[styles.optionButton, { backgroundColor: option.color }]}
+              onPress={() => handleAnswer(option.name)}>
+              <Text style={styles.optionText}>{option.name}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -131,7 +154,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFE5B4',
   },
   header: {
-    backgroundColor: '#95E1D3',
+    backgroundColor: '#FD79A8',
     padding: 20,
     alignItems: 'center',
   },
@@ -151,33 +174,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
-  animalContainer: {
-    backgroundColor: '#FFF',
-    padding: 40,
+  colorBox: {
+    width: 200,
+    height: 200,
     borderRadius: 20,
-    alignItems: 'center',
     marginBottom: 40,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
-  },
-  animalEmoji: {
-    fontSize: 100,
-    marginBottom: 10,
-  },
-  animalName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
   },
   optionsContainer: {
     width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
     gap: 15,
   },
   optionButton: {
-    backgroundColor: '#95E1D3',
+    width: 120,
     padding: 20,
     borderRadius: 15,
     alignItems: 'center',
@@ -188,9 +204,12 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   optionText: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#FFF',
+    textShadowColor: '#000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   introContainer: {
     flex: 1,
@@ -201,7 +220,7 @@ const styles = StyleSheet.create({
   introTitle: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#95E1D3',
+    color: '#FD79A8',
     marginBottom: 20,
   },
   introText: {

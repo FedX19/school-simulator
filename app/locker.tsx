@@ -16,123 +16,93 @@ interface Book {
   subject: Subject;
   title: string;
   color: string;
+  icon: string;
   route: string;
 }
 
 const BOOKS: Book[] = [
-  {
-    subject: 'math',
-    title: 'MATH',
-    color: '#FF6B6B',
-    route: '/games/math',
-  },
-  {
-    subject: 'reading',
-    title: 'READING',
-    color: '#4ECDC4',
-    route: '/games/reading',
-  },
-  {
-    subject: 'science',
-    title: 'SCIENCE',
-    color: '#95E1D3',
-    route: '/games/science',
-  },
+  { subject: 'reading', title: 'Reading', color: '#FF6B9D', icon: '🎈', route: '/games/reading' },
+  { subject: 'math', title: 'Math', color: '#FF6B6B', icon: '🍎', route: '/games/math' },
+  { subject: 'science', title: 'Science', color: '#95E1D3', icon: '🔊', route: '/games/science' },
+  { subject: 'social-studies', title: 'Social Studies', color: '#4ECDC4', icon: '👥', route: '/games/social-studies' },
+  { subject: 'feelings', title: 'Feelings', color: '#FFA502', icon: '😊', route: '/games/feelings' },
+  { subject: 'writing', title: 'Writing', color: '#A29BFE', icon: '✏️', route: '/games/writing' },
+  { subject: 'art', title: 'Art', color: '#FD79A8', icon: '🎨', route: '/games/art' },
+  { subject: 'music', title: 'Music', color: '#FDCB6E', icon: '🎵', route: '/games/music' },
+  { subject: 'shapes', title: 'Shapes', color: '#74B9FF', icon: '⬜', route: '/games/shapes' },
+  { subject: 'health', title: 'Health', color: '#55EFC4', icon: '🥗', route: '/games/health' },
+  { subject: 'pe', title: 'P.E.', color: '#81ECEC', icon: '🏃', route: '/games/pe' },
+  { subject: 'life-skills', title: 'Life Skills', color: '#FAB1A0', icon: '👕', route: '/games/life-skills' },
+  { subject: 'study-hall', title: 'Study Hall', color: '#DFE6E9', icon: '📚', route: '/games/study-hall' },
 ];
 
 export default function Locker() {
   const router = useRouter();
-  const { progress, getTodayProgress } = useProgress();
+  const { progress, getTodayProgress, isAllComplete } = useProgress();
   const todayCompleted = getTodayProgress();
+  const allComplete = isAllComplete();
 
   const handleBookPress = (book: Book) => {
     router.push(book.route as any);
   };
 
+  const completedCount = todayCompleted.length;
+
   return (
     <View style={styles.container}>
-      {/* Locker door frame */}
       <View style={styles.lockerFrame}>
         <View style={styles.lockerHeader}>
-          <Text style={styles.headerText}>MY LOCKER</Text>
+          <Text style={styles.headerText}>MY KINDERGARTEN DAY</Text>
         </View>
 
-        {/* Bookshelf */}
         <ScrollView
           style={styles.bookshelf}
           contentContainerStyle={styles.bookshelfContent}>
-          {/* Books */}
-          <View style={styles.booksRow}>
-            {BOOKS.map((book) => (
-              <TouchableOpacity
-                key={book.subject}
-                activeOpacity={0.7}
-                onPress={() => handleBookPress(book)}
-                style={styles.bookContainer}>
-                <View style={[styles.book, { backgroundColor: book.color }]}>
-                  <Text style={styles.bookTitle}>{book.title}</Text>
 
-                  {/* Show sticker if completed today */}
-                  {todayCompleted.includes(book.subject) && (
-                    <View style={styles.stickerBadge}>
-                      <Text style={styles.stickerText}>
-                        {progress[book.subject]?.sticker || '⭐'}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </TouchableOpacity>
-            ))}
+          {/* Progress Header */}
+          <View style={styles.progressHeader}>
+            <Text style={styles.progressText}>
+              {completedCount} of 13 Complete
+            </Text>
+            {allComplete && (
+              <Text style={styles.allDoneText}>🎉 All Done! Pick Your Sticker! 🎉</Text>
+            )}
           </View>
 
-          {/* Progress section */}
-          <View style={styles.progressSection}>
-            <Text style={styles.progressTitle}>Today's Progress</Text>
-            <View style={styles.progressBars}>
-              {BOOKS.map((book) => {
-                const isCompleted = todayCompleted.includes(book.subject);
-                return (
-                  <View key={book.subject} style={styles.progressItem}>
-                    <Text style={styles.subjectName}>{book.title}</Text>
-                    <View style={styles.progressBarContainer}>
-                      <View
-                        style={[
-                          styles.progressBar,
-                          {
-                            backgroundColor: isCompleted ? book.color : '#E0E0E0',
-                            width: isCompleted ? '100%' : '0%',
-                          },
-                        ]}
-                      />
-                    </View>
-                    <Text style={styles.statusText}>
-                      {isCompleted ? '✓' : '○'}
-                    </Text>
+          {/* Books Grid */}
+          <View style={styles.booksGrid}>
+            {BOOKS.map((book) => {
+              const isCompleted = todayCompleted.includes(book.subject);
+
+              return (
+                <TouchableOpacity
+                  key={book.subject}
+                  activeOpacity={0.7}
+                  onPress={() => handleBookPress(book)}
+                  style={styles.bookContainer}>
+                  <View style={[styles.book, { backgroundColor: book.color }]}>
+                    <Text style={styles.bookIcon}>{book.icon}</Text>
+                    <Text style={styles.bookTitle}>{book.title}</Text>
+
+                    {/* Checkmark if completed */}
+                    {isCompleted && (
+                      <View style={styles.checkmark}>
+                        <Text style={styles.checkmarkText}>✓</Text>
+                      </View>
+                    )}
                   </View>
-                );
-              })}
-            </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
-          {/* Sticker collection display */}
-          <View style={styles.stickerCollection}>
-            <Text style={styles.stickerCollectionTitle}>My Stickers</Text>
-            <View style={styles.stickersGrid}>
-              {Object.entries(progress).map(([subject, data]) => (
-                data.sticker && (
-                  <View key={subject} style={styles.stickerItem}>
-                    <Text style={styles.stickerEmoji}>{data.sticker}</Text>
-                    <Text style={styles.stickerLabel}>{subject}</Text>
-                  </View>
-                )
-              ))}
-              {Object.keys(progress).length === 0 && (
-                <Text style={styles.noStickersText}>
-                  Complete games to earn stickers!
-                </Text>
-              )}
+          {/* Day Complete Sticker */}
+          {progress.dayCompleted && progress.sticker && (
+            <View style={styles.dayStickerContainer}>
+              <Text style={styles.dayStickerTitle}>Today's Sticker:</Text>
+              <Text style={styles.daySticker}>{progress.sticker}</Text>
             </View>
-          </View>
+          )}
         </ScrollView>
 
         {/* Back button */}
@@ -155,8 +125,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   lockerFrame: {
-    width: Math.min(width * 0.9, 600),
-    height: height * 0.85,
+    width: Math.min(width * 0.9, 700),
+    height: height * 0.9,
     backgroundColor: '#B8860B',
     borderRadius: 15,
     padding: 5,
@@ -174,10 +144,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerText: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#FFD700',
-    letterSpacing: 2,
+    letterSpacing: 1,
   },
   bookshelf: {
     flex: 1,
@@ -186,22 +156,38 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 10,
   },
   bookshelfContent: {
-    padding: 20,
+    padding: 15,
+  },
+  progressHeader: {
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
     alignItems: 'center',
   },
-  booksRow: {
+  progressText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#8B4513',
+  },
+  allDoneText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    marginTop: 10,
+  },
+  booksGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 20,
-    marginBottom: 30,
+    justifyContent: 'space-around',
+    gap: 10,
   },
   bookContainer: {
-    marginBottom: 10,
+    width: '30%',
+    marginBottom: 15,
   },
   book: {
-    width: 120,
-    height: 180,
+    aspectRatio: 0.7,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
@@ -212,114 +198,51 @@ const styles = StyleSheet.create({
     elevation: 6,
     borderWidth: 3,
     borderColor: '#FFF',
+    padding: 5,
+  },
+  bookIcon: {
+    fontSize: 30,
+    marginBottom: 5,
   },
   bookTitle: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#FFF',
     textAlign: 'center',
-    transform: [{ rotate: '-90deg' }],
-    width: 150,
   },
-  stickerBadge: {
+  checkmark: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: '#FFF',
-    borderRadius: 20,
-    width: 40,
-    height: 40,
+    top: 5,
+    right: 5,
+    backgroundColor: '#4CAF50',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FFD700',
+    borderColor: '#FFF',
   },
-  stickerText: {
-    fontSize: 24,
-  },
-  progressSection: {
-    width: '100%',
-    backgroundColor: '#F5DEB3',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 20,
-  },
-  progressTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#8B4513',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  progressBars: {
-    gap: 10,
-  },
-  progressItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  subjectName: {
-    width: 80,
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#8B4513',
-  },
-  progressBarContainer: {
-    flex: 1,
-    height: 20,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  progressBar: {
-    height: '100%',
-    borderRadius: 10,
-  },
-  statusText: {
+  checkmarkText: {
     fontSize: 18,
-    width: 25,
-    textAlign: 'center',
-  },
-  stickerCollection: {
-    width: '100%',
-    backgroundColor: '#F5DEB3',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 20,
-  },
-  stickerCollectionTitle: {
-    fontSize: 20,
     fontWeight: 'bold',
-    color: '#8B4513',
-    marginBottom: 15,
-    textAlign: 'center',
+    color: '#FFF',
   },
-  stickersGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 15,
-    justifyContent: 'center',
-  },
-  stickerItem: {
+  dayStickerContainer: {
+    backgroundColor: '#FFF',
+    borderRadius: 15,
+    padding: 20,
+    marginTop: 20,
     alignItems: 'center',
-    width: 80,
   },
-  stickerEmoji: {
-    fontSize: 40,
-    marginBottom: 5,
-  },
-  stickerLabel: {
-    fontSize: 12,
-    color: '#8B4513',
+  dayStickerTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
+    color: '#8B4513',
+    marginBottom: 10,
   },
-  noStickersText: {
-    fontSize: 14,
-    color: '#999',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    paddingVertical: 20,
+  daySticker: {
+    fontSize: 60,
   },
   backButton: {
     backgroundColor: '#4CAF50',

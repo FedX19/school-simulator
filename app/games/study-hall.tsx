@@ -4,76 +4,79 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
+  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useProgress } from '@/contexts/progress-context';
 
-const { width } = Dimensions.get('window');
-
-interface SoundPair {
+interface QuizQuestion {
+  subject: string;
+  question: string;
   emoji: string;
-  name: string;
-  sound: string;
   options: string[];
+  correct: string;
 }
 
-const SOUND_PAIRS: SoundPair[] = [
-  { emoji: '🐶', name: 'Dog', sound: 'Woof!', options: ['Woof!', 'Meow!', 'Moo!', 'Quack!'] },
-  { emoji: '🐱', name: 'Cat', sound: 'Meow!', options: ['Meow!', 'Woof!', 'Ribbit!', 'Roar!'] },
-  { emoji: '🐮', name: 'Cow', sound: 'Moo!', options: ['Moo!', 'Baa!', 'Neigh!', 'Oink!'] },
-  { emoji: '🐸', name: 'Frog', sound: 'Ribbit!', options: ['Ribbit!', 'Hiss!', 'Chirp!', 'Roar!'] },
-  { emoji: '🦁', name: 'Lion', sound: 'Roar!', options: ['Roar!', 'Meow!', 'Woof!', 'Moo!'] },
-  { emoji: '🐷', name: 'Pig', sound: 'Oink!', options: ['Oink!', 'Moo!', 'Quack!', 'Baa!'] },
-  { emoji: '🦆', name: 'Duck', sound: 'Quack!', options: ['Quack!', 'Chirp!', 'Hoot!', 'Woof!'] },
-  { emoji: '🐝', name: 'Bee', sound: 'Buzz!', options: ['Buzz!', 'Chirp!', 'Hiss!', 'Woof!'] },
+const QUIZ: QuizQuestion[] = [
+  { subject: 'Reading', emoji: '🎈', question: 'What letter is this: A', options: ['A', 'B', 'C', 'D'], correct: 'A' },
+  { subject: 'Math', emoji: '🍎', question: '2 + 1 = ?', options: ['2', '3', '4', '5'], correct: '3' },
+  { subject: 'Science', emoji: '🔊', question: 'What sound does a dog make?', options: ['Woof!', 'Meow!', 'Moo!', 'Quack!'], correct: 'Woof!' },
+  { subject: 'Social Studies', emoji: '👥', question: 'Who teaches students?', options: ['Teacher', 'Doctor', 'Chef', 'Police'], correct: 'Teacher' },
+  { subject: 'Feelings', emoji: '😊', question: 'This face is:', options: ['Happy', 'Sad', 'Angry', 'Scared'], correct: 'Happy' },
+  { subject: 'Writing', emoji: '✏️', question: 'We use this to write:', options: ['Pencil', 'Spoon', 'Ball', 'Shoe'], correct: 'Pencil' },
+  { subject: 'Art', emoji: '🎨', question: 'What color is the sky?', options: ['Blue', 'Red', 'Green', 'Yellow'], correct: 'Blue' },
+  { subject: 'Music', emoji: '🎵', question: 'We play drums by:', options: ['Tapping', 'Throwing', 'Eating', 'Sitting'], correct: 'Tapping' },
+  { subject: 'Shapes', emoji: '⬜', question: 'A ball is a:', options: ['Circle', 'Square', 'Triangle', 'Star'], correct: 'Circle' },
+  { subject: 'Health', emoji: '🥗', question: 'Which is healthy?', options: ['Apple', 'Candy', 'Soda', 'Cake'], correct: 'Apple' },
+  { subject: 'P.E.', emoji: '🏃', question: 'Running is good for:', options: ['Exercise', 'Sleeping', 'Reading', 'Eating'], correct: 'Exercise' },
+  { subject: 'Life Skills', emoji: '👕', question: 'We wear these on our feet:', options: ['Shoes', 'Hats', 'Gloves', 'Pants'], correct: 'Shoes' },
 ];
 
-export default function ScienceGame() {
+export default function StudyHallGame() {
   const router = useRouter();
   const { completeSubject } = useProgress();
-  const [currentRound, setCurrentRound] = useState(0);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
   const [score, setScore] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
   const [showResults, setShowResults] = useState(false);
 
-  const totalRounds = 8;
-  const currentPair = SOUND_PAIRS[currentRound];
+  const totalQuestions = 12;
+  const question = QUIZ[currentQuestion];
 
   const startGame = () => {
     setShowIntro(false);
   };
 
   const handleAnswer = (answer: string) => {
-    if (answer === currentPair.sound) {
+    if (answer === question.correct) {
       setScore(score + 1);
     }
 
-    if (currentRound + 1 >= totalRounds) {
+    if (currentQuestion + 1 >= totalQuestions) {
       setShowResults(true);
     } else {
-      setCurrentRound(currentRound + 1);
+      setCurrentQuestion(currentQuestion + 1);
     }
   };
 
   const handleComplete = async () => {
-    await completeSubject('science');
+    await completeSubject('study-hall');
     router.back();
   };
 
   if (showIntro) {
     return (
       <View style={styles.container}>
-        <View style={styles.introContainer}>
-          <Text style={styles.introTitle}>🔊 Sound Matching 🔊</Text>
-          <Text style={styles.introText}>Match the animal with its sound!</Text>
-          <Text style={styles.introText}>What sound does each one make?</Text>
+        <ScrollView contentContainerStyle={styles.introContainer}>
+          <Text style={styles.introTitle}>📚 Study Hall Review 📚</Text>
+          <Text style={styles.introText}>Review what we learned today!</Text>
+          <Text style={styles.introText}>12 questions from all subjects!</Text>
           <TouchableOpacity
             style={styles.startButton}
             onPress={startGame}>
-            <Text style={styles.startButtonText}>Start Game</Text>
+            <Text style={styles.startButtonText}>Start Quiz</Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       </View>
     );
   }
@@ -82,13 +85,13 @@ export default function ScienceGame() {
     return (
       <View style={styles.container}>
         <View style={styles.resultsContainer}>
-          <Text style={styles.resultsTitle}>Great Listening!</Text>
-          <Text style={styles.resultsScore}>You got {score} out of {totalRounds} correct!</Text>
-          <Text style={styles.resultsEmoji}>🔊✨</Text>
+          <Text style={styles.resultsTitle}>Great Review!</Text>
+          <Text style={styles.resultsScore}>You got {score} out of {totalQuestions} correct!</Text>
+          <Text style={styles.resultsEmoji}>📚✨</Text>
           <TouchableOpacity
             style={styles.completeButton}
             onPress={handleComplete}>
-            <Text style={styles.completeButtonText}>Complete Science ✓</Text>
+            <Text style={styles.completeButtonText}>Complete Study Hall ✓</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -98,20 +101,17 @@ export default function ScienceGame() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>What sound does it make?</Text>
-        <Text style={styles.progress}>Sound {currentRound + 1} of {totalRounds}</Text>
+        <Text style={styles.subjectText}>{question.subject} {question.emoji}</Text>
+        <Text style={styles.progress}>Question {currentQuestion + 1} of {totalQuestions}</Text>
       </View>
 
-      <View style={styles.gameArea}>
-        {/* Animal */}
-        <View style={styles.animalContainer}>
-          <Text style={styles.animalEmoji}>{currentPair.emoji}</Text>
-          <Text style={styles.animalName}>{currentPair.name}</Text>
+      <ScrollView contentContainerStyle={styles.gameArea}>
+        <View style={styles.questionContainer}>
+          <Text style={styles.questionText}>{question.question}</Text>
         </View>
 
-        {/* Options */}
         <View style={styles.optionsContainer}>
-          {currentPair.options.map((option) => (
+          {question.options.map((option) => (
             <TouchableOpacity
               key={option}
               style={styles.optionButton}
@@ -120,7 +120,7 @@ export default function ScienceGame() {
             </TouchableOpacity>
           ))}
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -131,53 +131,49 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFE5B4',
   },
   header: {
-    backgroundColor: '#95E1D3',
+    backgroundColor: '#DFE6E9',
     padding: 20,
     alignItems: 'center',
   },
-  headerText: {
+  subjectText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFF',
+    color: '#333',
   },
   progress: {
     fontSize: 18,
-    color: '#FFF',
+    color: '#666',
     marginTop: 5,
   },
   gameArea: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+    flexGrow: 1,
   },
-  animalContainer: {
+  questionContainer: {
     backgroundColor: '#FFF',
-    padding: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    marginBottom: 40,
+    padding: 30,
+    borderRadius: 15,
+    marginBottom: 30,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 4,
   },
-  animalEmoji: {
-    fontSize: 100,
-    marginBottom: 10,
-  },
-  animalName: {
-    fontSize: 28,
+  questionText: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
+    textAlign: 'center',
   },
   optionsContainer: {
     width: '100%',
     gap: 15,
   },
   optionButton: {
-    backgroundColor: '#95E1D3',
+    backgroundColor: '#DFE6E9',
     padding: 20,
     borderRadius: 15,
     alignItems: 'center',
@@ -188,12 +184,12 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   optionText: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFF',
+    color: '#333',
   },
   introContainer: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -201,7 +197,7 @@ const styles = StyleSheet.create({
   introTitle: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#95E1D3',
+    color: '#636E72',
     marginBottom: 20,
   },
   introText: {
@@ -238,6 +234,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: '#333',
     marginBottom: 20,
+    textAlign: 'center',
   },
   resultsEmoji: {
     fontSize: 60,

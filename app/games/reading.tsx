@@ -4,240 +4,120 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
   Animated,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useProgress } from '@/contexts/progress-context';
 
 const { width, height } = Dimensions.get('window');
 
-interface WordPair {
-  word: string;
-  image: string;
-  options: string[];
-}
-
-const WORD_PAIRS: WordPair[] = [
-  { word: 'CAT', image: '🐱', options: ['CAT', 'DOG', 'BAT', 'RAT'] },
-  { word: 'SUN', image: '☀️', options: ['SUN', 'FUN', 'RUN', 'BUN'] },
-  { word: 'TREE', image: '🌲', options: ['TREE', 'FREE', 'FLEE', 'KNEE'] },
-  { word: 'STAR', image: '⭐', options: ['STAR', 'SCAR', 'STIR', 'STAY'] },
-  { word: 'FISH', image: '🐟', options: ['FISH', 'DISH', 'WISH', 'FIST'] },
-  { word: 'BIRD', image: '🐦', options: ['BIRD', 'DIRT', 'BURN', 'BIND'] },
-  { word: 'MOON', image: '🌙', options: ['MOON', 'NOON', 'SOON', 'ROOM'] },
-  { word: 'FROG', image: '🐸', options: ['FROG', 'FROM', 'DRAG', 'FLAG'] },
-  { word: 'BOOK', image: '📚', options: ['BOOK', 'COOK', 'LOOK', 'HOOK'] },
-  { word: 'RAIN', image: '🌧️', options: ['RAIN', 'PAIN', 'MAIN', 'GAIN'] },
-];
-
-const STICKERS = ['📚', '📖', '✏️', '📝', '🎓', '🏆', '⭐', '🌟'];
-const QUESTIONS_TO_WIN = 10;
-const TIME_PER_QUESTION = 5;
-const PASSING_SCORE = 7;
-
-type GameState = 'intro' | 'playing' | 'results';
+const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
 export default function ReadingGame() {
   const router = useRouter();
   const { completeSubject } = useProgress();
-  const [gameState, setGameState] = useState<GameState>('intro');
-  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  const [currentRound, setCurrentRound] = useState(0);
   const [score, setScore] = useState(0);
-  const [correctCount, setCorrectCount] = useState(0);
-  const [questionsAnswered, setQuestionsAnswered] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(TIME_PER_QUESTION);
-  const [feedback, setFeedback] = useState<string>('');
-  const [wrongAnswer, setWrongAnswer] = useState<string | null>(null);
+  const [showIntro, setShowIntro] = useState(true);
+  const [showResults, setShowResults] = useState(false);
+  const [targetLetter, setTargetLetter] = useState('');
+  const [balloons, setBalloons] = useState<{ letter: string; id: number }[]>([]);
 
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const fallingAnims = useRef<Animated.Value[]>([]).current;
-
-  const currentPair = WORD_PAIRS[currentWordIndex % WORD_PAIRS.length];
+  const balloonPositions = useRef<{ x: Animated.Value; y: Animated.Value }[]>([]).current;
 
   useEffect(() => {
-    if (gameState === 'playing') {
-      startNewQuestion();
+    if (!showIntro && !showResults && currentRound < LETTERS.length) {
+      setupRound();
     }
-  }, [gameState, currentWordIndex]);
+  }, [currentRound, showIntro, showResults]);
 
-  useEffect(() => {
-    if (gameState === 'playing' && timeLeft > 0) {
-      timerRef.current = setTimeout(() => {
-        setTimeLeft(timeLeft - 1);
-      }, 1000);
-    } else if (gameState === 'playing' && timeLeft === 0) {
-      handleTimeout();
-    }
+  const setupRound = () => {
+    const target = LETTERS[currentRound];
+    setTargetLetter(target);
 
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    };
-  }, [timeLeft, gameState]);
+    // Create 4 balloons: 1 correct, 3 random wrong letters
+    const wrongLetters = LETTERS.filter(l => l !== target);
+    const shuffled = [...wrongLetters].sort(() => Math.random() - 0.5).slice(0, 3);
+    const allBalloons = [target, ...shuffled]
+      .sort(() => Math.random() - 0.5)
+      .map((letter, idx) => ({ letter, id: idx }));
 
-  const startNewQuestion = () => {
-    setTimeLeft(TIME_PER_QUESTION);
-    setFeedback('');
-    setWrongAnswer(null);
+    setBalloons(allBalloons);
 
-    // Initialize falling animations
-    fallingAnims.length = 0;
-    currentPair.options.forEach(() => {
-      fallingAnims.push(new Animated.Value(-100));
+    // Clear old animations
+    balloonPositions.length = 0;
+
+    // Create floating animations for each balloon
+    allBalloons.forEach(() => {
+      const xPos = new Animated.Value(Math.random() * (width - 140) + 20);
+      const yPos = new Animated.Value(Math.random() * 200 + 100);
+      balloonPositions.push({ x: xPos, y: yPos });
+
+      Animated.loop(
+        Animated.sequence([
+          Animated.parallel([
+            Animated.timing(xPos, {
+              toValue: Math.random() * (width - 140) + 20,
+              duration: 3000 + Math.random() * 2000,
+              useNativeDriver: true,
+            }),
+            Animated.timing(yPos, {
+              toValue: Math.random() * 200 + 100,
+              duration: 3000 + Math.random() * 2000,
+              useNativeDriver: true,
+            }),
+          ]),
+        ])
+      ).start();
     });
-
-    // Stagger the falling animation
-    Animated.stagger(
-      200,
-      fallingAnims.map((anim) =>
-        Animated.timing(anim, {
-          toValue: 0,
-          duration: 800,
-          useNativeDriver: true,
-        })
-      )
-    ).start();
   };
 
-  const handleTimeout = () => {
-    setFeedback('⏰ Time\'s up!');
-    const newQuestionsAnswered = questionsAnswered + 1;
-    setQuestionsAnswered(newQuestionsAnswered);
+  const handleBalloonPress = (letter: string) => {
+    if (letter === targetLetter) {
+      setScore(score + 1);
+    }
 
-    if (newQuestionsAnswered >= QUESTIONS_TO_WIN) {
-      setTimeout(() => finishGame(), 1000);
+    if (currentRound + 1 >= LETTERS.length) {
+      setShowResults(true);
     } else {
-      setTimeout(() => {
-        setCurrentWordIndex(currentWordIndex + 1);
-      }, 1500);
+      setCurrentRound(currentRound + 1);
     }
   };
 
-  const handleAnswer = (selectedWord: string, index: number) => {
-    if (feedback) return;
-
-    const isCorrect = selectedWord === currentPair.word;
-    const newQuestionsAnswered = questionsAnswered + 1;
-    const timeBonus = timeLeft * 10;
-
-    if (isCorrect) {
-      // Catch animation - word flies up
-      Animated.timing(fallingAnims[index], {
-        toValue: -200,
-        duration: 400,
-        useNativeDriver: true,
-      }).start();
-
-      setCorrectCount(correctCount + 1);
-      setScore(score + 100 + timeBonus);
-      setFeedback('📚 Perfect!');
-    } else {
-      setWrongAnswer(selectedWord);
-      setFeedback(`❌ It was ${currentPair.word}`);
-    }
-
-    setQuestionsAnswered(newQuestionsAnswered);
-
-    if (newQuestionsAnswered >= QUESTIONS_TO_WIN) {
-      setTimeout(() => finishGame(), 1500);
-    } else {
-      setTimeout(() => {
-        setCurrentWordIndex(currentWordIndex + 1);
-      }, 1500);
-    }
+  const handleComplete = async () => {
+    await completeSubject('reading');
+    router.back();
   };
 
-  const finishGame = async () => {
-    if (correctCount >= PASSING_SCORE) {
-      const randomSticker = STICKERS[Math.floor(Math.random() * STICKERS.length)];
-      await completeSubject('reading', randomSticker);
-    }
-    setGameState('results');
-  };
-
-  const startGame = () => {
-    setGameState('playing');
-    setScore(0);
-    setCorrectCount(0);
-    setQuestionsAnswered(0);
-    setCurrentWordIndex(0);
-  };
-
-  const getTimerColor = () => {
-    if (timeLeft > 3) return '#4CAF50';
-    if (timeLeft > 1) return '#FFC107';
-    return '#F44336';
-  };
-
-  if (gameState === 'intro') {
+  if (showIntro) {
     return (
       <View style={styles.container}>
         <View style={styles.introContainer}>
-          <Text style={styles.introTitle}>📖 Word Catch!</Text>
-          <Text style={styles.introEmoji}>📚</Text>
-
-          <View style={styles.rulesContainer}>
-            <Text style={styles.rulesTitle}>How to Play:</Text>
-            <Text style={styles.ruleText}>• Look at the picture</Text>
-            <Text style={styles.ruleText}>• Tap the matching word</Text>
-            <Text style={styles.ruleText}>• Catch it before time runs out!</Text>
-            <Text style={styles.ruleText}>• 10 questions, 5 seconds each</Text>
-            <Text style={styles.ruleText}>• Get 7+ correct to earn a sticker!</Text>
-          </View>
-
-          <TouchableOpacity style={styles.startButton} onPress={startGame}>
-            <Text style={styles.startButtonText}>START GAME</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backButtonText}>← Back to Locker</Text>
+          <Text style={styles.introTitle}>🎈 Letter Balloons 🎈</Text>
+          <Text style={styles.introText}>Pop the balloon with the letter I say!</Text>
+          <Text style={styles.introText}>Listen carefully and find the right letter.</Text>
+          <TouchableOpacity
+            style={styles.startButton}
+            onPress={() => setShowIntro(false)}>
+            <Text style={styles.startButtonText}>Start Game</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   }
 
-  if (gameState === 'results') {
-    const passed = correctCount >= PASSING_SCORE;
-    const accuracy = Math.round((correctCount / QUESTIONS_TO_WIN) * 100);
-
+  if (showResults) {
     return (
       <View style={styles.container}>
         <View style={styles.resultsContainer}>
-          <Text style={styles.resultsTitle}>
-            {passed ? '📚 Awesome Reading!' : '💪 Keep Practicing!'}
-          </Text>
-
-          <View style={styles.statsContainer}>
-            <Text style={styles.statLabel}>Questions Correct:</Text>
-            <Text style={styles.statValue}>{correctCount}/{QUESTIONS_TO_WIN}</Text>
-
-            <Text style={styles.statLabel}>Accuracy:</Text>
-            <Text style={styles.statValue}>{accuracy}%</Text>
-
-            <Text style={styles.statLabel}>Total Score:</Text>
-            <Text style={styles.statValue}>{score}</Text>
-          </View>
-
-          {passed && (
-            <View style={styles.stickerEarned}>
-              <Text style={styles.stickerEarnedEmoji}>
-                {STICKERS[Math.floor(Math.random() * STICKERS.length)]}
-              </Text>
-              <Text style={styles.stickerEarnedText}>Sticker Earned!</Text>
-            </View>
-          )}
-
-          {!passed && (
-            <Text style={styles.encouragementText}>
-              Try again to earn a sticker! You need {PASSING_SCORE} correct.
-            </Text>
-          )}
-
-          <TouchableOpacity style={styles.doneButton} onPress={() => router.back()}>
-            <Text style={styles.doneButtonText}>Back to Locker</Text>
+          <Text style={styles.resultsTitle}>Great Job!</Text>
+          <Text style={styles.resultsScore}>You got {score} out of {LETTERS.length} letters!</Text>
+          <Text style={styles.resultsEmoji}>🎈✨</Text>
+          <TouchableOpacity
+            style={styles.completeButton}
+            onPress={handleComplete}>
+            <Text style={styles.completeButtonText}>Complete Reading ✓</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -246,74 +126,40 @@ export default function ReadingGame() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.scoreContainer}>
-          <Text style={styles.scoreLabel}>Score</Text>
-          <Text style={styles.scoreText}>{score}</Text>
-        </View>
-
-        <View style={styles.progressContainer}>
-          <Text style={styles.progressText}>
-            {questionsAnswered + 1}/{QUESTIONS_TO_WIN}
-          </Text>
-        </View>
+        <Text style={styles.headerText}>Find the letter:</Text>
+        <Text style={styles.targetLetter}>{targetLetter}</Text>
+        <Text style={styles.progress}>Letter {currentRound + 1} of {LETTERS.length}</Text>
       </View>
 
-      {/* Timer */}
-      <View style={[styles.timerContainer, { backgroundColor: getTimerColor() }]}>
-        <Text style={styles.timerText}>{timeLeft}</Text>
-      </View>
-
-      {/* Picture to match */}
-      <View style={styles.pictureContainer}>
-        <Text style={styles.pictureEmoji}>{currentPair.image}</Text>
-        <Text style={styles.pictureLabel}>What word matches?</Text>
-      </View>
-
-      {/* Feedback */}
-      {feedback && <Text style={styles.feedbackText}>{feedback}</Text>}
-
-      {/* Falling words */}
-      <View style={styles.wordsContainer}>
-        {currentPair.options.map((option, index) => {
-          const isWrong = wrongAnswer === option;
-          const translateY = fallingAnims[index] || new Animated.Value(0);
+      <View style={styles.gameArea}>
+        {balloons.map((balloon, index) => {
+          const pos = balloonPositions[index];
+          if (!pos) return null;
 
           return (
             <Animated.View
-              key={`${option}-${index}`}
+              key={balloon.id}
               style={[
-                styles.wordWrapper,
+                styles.balloonContainer,
                 {
-                  transform: [{ translateY }],
+                  transform: [
+                    { translateX: pos.x },
+                    { translateY: pos.y },
+                  ],
                 },
               ]}>
               <TouchableOpacity
-                style={[
-                  styles.wordButton,
-                  isWrong && styles.wordButtonWrong,
-                ]}
-                onPress={() => handleAnswer(option, index)}
-                disabled={!!feedback}>
-                <Text style={styles.wordText}>{option}</Text>
+                activeOpacity={0.7}
+                onPress={() => handleBalloonPress(balloon.letter)}>
+                <View style={styles.balloon}>
+                  <Text style={styles.balloonText}>{balloon.letter}</Text>
+                </View>
+                <View style={styles.balloonString} />
               </TouchableOpacity>
             </Animated.View>
           );
         })}
-      </View>
-
-      {/* Progress dots */}
-      <View style={styles.progressDots}>
-        {Array.from({ length: QUESTIONS_TO_WIN }).map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.progressDot,
-              index < questionsAnswered && styles.progressDotFilled,
-            ]}
-          />
-        ))}
       </View>
     </View>
   );
@@ -322,8 +168,61 @@ export default function ReadingGame() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#4ECDC4',
+    backgroundColor: '#FFE5B4',
+  },
+  header: {
+    backgroundColor: '#FF6B9D',
     padding: 20,
+    alignItems: 'center',
+  },
+  headerText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+  targetLetter: {
+    fontSize: 72,
+    fontWeight: 'bold',
+    color: '#FFF',
+    marginVertical: 10,
+  },
+  progress: {
+    fontSize: 18,
+    color: '#FFF',
+  },
+  gameArea: {
+    flex: 1,
+    position: 'relative',
+  },
+  balloonContainer: {
+    position: 'absolute',
+    alignItems: 'center',
+  },
+  balloon: {
+    width: 90,
+    height: 110,
+    backgroundColor: '#FF6B9D',
+    borderRadius: 45,
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  balloonText: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+  balloonString: {
+    width: 2,
+    height: 40,
+    backgroundColor: '#8B4513',
+    alignSelf: 'center',
   },
   introContainer: {
     flex: 1,
@@ -332,60 +231,28 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   introTitle: {
-    fontSize: 40,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#FFF',
+    color: '#FF6B9D',
     marginBottom: 20,
-    textAlign: 'center',
   },
-  introEmoji: {
-    fontSize: 80,
-    marginBottom: 30,
-  },
-  rulesContainer: {
-    backgroundColor: '#FFF',
-    borderRadius: 20,
-    padding: 30,
-    marginBottom: 30,
-    width: '100%',
-    maxWidth: 500,
-  },
-  rulesTitle: {
+  introText: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#4ECDC4',
-    marginBottom: 15,
-  },
-  ruleText: {
-    fontSize: 18,
     color: '#333',
-    marginVertical: 5,
-    lineHeight: 28,
+    textAlign: 'center',
+    marginBottom: 10,
   },
   startButton: {
-    backgroundColor: '#FFF',
-    paddingHorizontal: 60,
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 40,
     paddingVertical: 20,
     borderRadius: 15,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
+    marginTop: 30,
   },
   startButtonText: {
+    color: '#FFF',
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#4ECDC4',
-  },
-  backButton: {
-    padding: 15,
-  },
-  backButtonText: {
-    fontSize: 18,
-    color: '#FFF',
-    fontWeight: '600',
   },
   resultsContainer: {
     flex: 1,
@@ -394,196 +261,29 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   resultsTitle: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: '#FFF',
-    marginBottom: 40,
-    textAlign: 'center',
-  },
-  statsContainer: {
-    backgroundColor: '#FFF',
-    borderRadius: 20,
-    padding: 30,
-    width: '100%',
-    maxWidth: 400,
-    marginBottom: 30,
-  },
-  statLabel: {
-    fontSize: 18,
-    color: '#666',
-    marginTop: 15,
-  },
-  statValue: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#4ECDC4',
-    marginBottom: 10,
-  },
-  stickerEarned: {
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  stickerEarnedEmoji: {
-    fontSize: 80,
-    marginBottom: 10,
-  },
-  stickerEarnedText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  encouragementText: {
-    fontSize: 18,
-    color: '#FFF',
-    textAlign: 'center',
-    marginBottom: 30,
-    paddingHorizontal: 20,
-  },
-  doneButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 50,
-    paddingVertical: 18,
-    borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
-  },
-  doneButtonText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    color: '#4CAF50',
     marginBottom: 20,
   },
-  scoreContainer: {
-    backgroundColor: '#FFF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 15,
-    alignItems: 'center',
-  },
-  scoreLabel: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '600',
-  },
-  scoreText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#4ECDC4',
-  },
-  progressContainer: {
-    backgroundColor: '#FFF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 15,
-  },
-  progressText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#4ECDC4',
-  },
-  timerContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignSelf: 'center',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
-  },
-  timerText: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  pictureContainer: {
-    backgroundColor: '#FFF',
-    padding: 30,
-    borderRadius: 20,
-    marginBottom: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
-  },
-  pictureEmoji: {
-    fontSize: 80,
-    marginBottom: 10,
-  },
-  pictureLabel: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#4ECDC4',
-  },
-  feedbackText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFF',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  wordsContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    gap: 15,
-    marginBottom: 20,
-  },
-  wordWrapper: {
-    width: '100%',
-  },
-  wordButton: {
-    backgroundColor: '#FFF',
-    paddingVertical: 20,
-    paddingHorizontal: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 6,
-    borderWidth: 3,
-    borderColor: '#B3E5E0',
-  },
-  wordButtonWrong: {
-    backgroundColor: '#FFCDD2',
-    borderColor: '#F44336',
-  },
-  wordText: {
+  resultsScore: {
     fontSize: 28,
+    color: '#333',
+    marginBottom: 20,
+  },
+  resultsEmoji: {
+    fontSize: 60,
+    marginBottom: 30,
+  },
+  completeButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 40,
+    paddingVertical: 20,
+    borderRadius: 15,
+  },
+  completeButtonText: {
+    color: '#FFF',
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#4ECDC4',
-  },
-  progressDots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
-    paddingBottom: 10,
-  },
-  progressDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#FFF',
-    opacity: 0.3,
-  },
-  progressDotFilled: {
-    opacity: 1,
-    backgroundColor: '#FFD700',
   },
 });

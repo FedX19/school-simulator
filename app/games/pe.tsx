@@ -4,60 +4,55 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useProgress } from '@/contexts/progress-context';
 
-const { width } = Dimensions.get('window');
-
-interface SoundPair {
-  emoji: string;
-  name: string;
-  sound: string;
-  options: string[];
-}
-
-const SOUND_PAIRS: SoundPair[] = [
-  { emoji: '🐶', name: 'Dog', sound: 'Woof!', options: ['Woof!', 'Meow!', 'Moo!', 'Quack!'] },
-  { emoji: '🐱', name: 'Cat', sound: 'Meow!', options: ['Meow!', 'Woof!', 'Ribbit!', 'Roar!'] },
-  { emoji: '🐮', name: 'Cow', sound: 'Moo!', options: ['Moo!', 'Baa!', 'Neigh!', 'Oink!'] },
-  { emoji: '🐸', name: 'Frog', sound: 'Ribbit!', options: ['Ribbit!', 'Hiss!', 'Chirp!', 'Roar!'] },
-  { emoji: '🦁', name: 'Lion', sound: 'Roar!', options: ['Roar!', 'Meow!', 'Woof!', 'Moo!'] },
-  { emoji: '🐷', name: 'Pig', sound: 'Oink!', options: ['Oink!', 'Moo!', 'Quack!', 'Baa!'] },
-  { emoji: '🦆', name: 'Duck', sound: 'Quack!', options: ['Quack!', 'Chirp!', 'Hoot!', 'Woof!'] },
-  { emoji: '🐝', name: 'Bee', sound: 'Buzz!', options: ['Buzz!', 'Chirp!', 'Hiss!', 'Woof!'] },
+const ROUTINES = [
+  {
+    name: 'Morning Stretch',
+    moves: ['🙆 Arms Up', '🤸 Touch Toes', '🏃 Jump', '👏 Clap'],
+  },
+  {
+    name: 'Dance Party',
+    moves: ['💃 Spin', '🕺 Wave Arms', '🦘 Jump', '👋 Wave'],
+  },
 ];
 
-export default function ScienceGame() {
+export default function PEGame() {
   const router = useRouter();
   const { completeSubject } = useProgress();
-  const [currentRound, setCurrentRound] = useState(0);
-  const [score, setScore] = useState(0);
+  const [currentRoutine, setCurrentRoutine] = useState(0);
+  const [currentMove, setCurrentMove] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
   const [showResults, setShowResults] = useState(false);
+  const [score, setScore] = useState(0);
 
-  const totalRounds = 8;
-  const currentPair = SOUND_PAIRS[currentRound];
+  const totalRoutines = 2;
+  const routine = ROUTINES[currentRoutine];
 
   const startGame = () => {
     setShowIntro(false);
   };
 
-  const handleAnswer = (answer: string) => {
-    if (answer === currentPair.sound) {
+  const handleMoveDone = () => {
+    if (currentMove + 1 >= routine.moves.length) {
+      // Routine complete
       setScore(score + 1);
-    }
 
-    if (currentRound + 1 >= totalRounds) {
-      setShowResults(true);
+      if (currentRoutine + 1 >= totalRoutines) {
+        setShowResults(true);
+      } else {
+        setCurrentRoutine(currentRoutine + 1);
+        setCurrentMove(0);
+      }
     } else {
-      setCurrentRound(currentRound + 1);
+      setCurrentMove(currentMove + 1);
     }
   };
 
   const handleComplete = async () => {
-    await completeSubject('science');
+    await completeSubject('pe');
     router.back();
   };
 
@@ -65,9 +60,9 @@ export default function ScienceGame() {
     return (
       <View style={styles.container}>
         <View style={styles.introContainer}>
-          <Text style={styles.introTitle}>🔊 Sound Matching 🔊</Text>
-          <Text style={styles.introText}>Match the animal with its sound!</Text>
-          <Text style={styles.introText}>What sound does each one make?</Text>
+          <Text style={styles.introTitle}>🏃 P.E. Time! 🏃</Text>
+          <Text style={styles.introText}>Follow the movement routine!</Text>
+          <Text style={styles.introText}>Do each move and tap when done!</Text>
           <TouchableOpacity
             style={styles.startButton}
             onPress={startGame}>
@@ -82,13 +77,13 @@ export default function ScienceGame() {
     return (
       <View style={styles.container}>
         <View style={styles.resultsContainer}>
-          <Text style={styles.resultsTitle}>Great Listening!</Text>
-          <Text style={styles.resultsScore}>You got {score} out of {totalRounds} correct!</Text>
-          <Text style={styles.resultsEmoji}>🔊✨</Text>
+          <Text style={styles.resultsTitle}>Great Exercise!</Text>
+          <Text style={styles.resultsScore}>You completed {score} routines!</Text>
+          <Text style={styles.resultsEmoji}>🏃✨</Text>
           <TouchableOpacity
             style={styles.completeButton}
             onPress={handleComplete}>
-            <Text style={styles.completeButtonText}>Complete Science ✓</Text>
+            <Text style={styles.completeButtonText}>Complete P.E. ✓</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -98,28 +93,35 @@ export default function ScienceGame() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>What sound does it make?</Text>
-        <Text style={styles.progress}>Sound {currentRound + 1} of {totalRounds}</Text>
+        <Text style={styles.headerText}>{routine.name}</Text>
+        <Text style={styles.progress}>Routine {currentRoutine + 1} of {totalRoutines}</Text>
       </View>
 
       <View style={styles.gameArea}>
-        {/* Animal */}
-        <View style={styles.animalContainer}>
-          <Text style={styles.animalEmoji}>{currentPair.emoji}</Text>
-          <Text style={styles.animalName}>{currentPair.name}</Text>
-        </View>
-
-        {/* Options */}
-        <View style={styles.optionsContainer}>
-          {currentPair.options.map((option) => (
-            <TouchableOpacity
-              key={option}
-              style={styles.optionButton}
-              onPress={() => handleAnswer(option)}>
-              <Text style={styles.optionText}>{option}</Text>
-            </TouchableOpacity>
+        <View style={styles.movesListContainer}>
+          <Text style={styles.movesListTitle}>Full Routine:</Text>
+          {routine.moves.map((move, idx) => (
+            <Text
+              key={idx}
+              style={[
+                styles.moveListItem,
+                idx === currentMove && styles.currentMoveListItem
+              ]}>
+              {idx === currentMove ? '→ ' : ''}{move}
+            </Text>
           ))}
         </View>
+
+        <View style={styles.currentMoveContainer}>
+          <Text style={styles.currentMoveLabel}>Do This Move:</Text>
+          <Text style={styles.currentMoveText}>{routine.moves[currentMove]}</Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.doneButton}
+          onPress={handleMoveDone}>
+          <Text style={styles.doneButtonText}>I Did It! ✓</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -131,7 +133,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFE5B4',
   },
   header: {
-    backgroundColor: '#95E1D3',
+    backgroundColor: '#81ECEC',
     padding: 20,
     alignItems: 'center',
   },
@@ -148,46 +150,61 @@ const styles = StyleSheet.create({
   gameArea: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-around',
     padding: 20,
   },
-  animalContainer: {
+  movesListContainer: {
     backgroundColor: '#FFF',
-    padding: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    marginBottom: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
-  },
-  animalEmoji: {
-    fontSize: 100,
-    marginBottom: 10,
-  },
-  animalName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  optionsContainer: {
-    width: '100%',
-    gap: 15,
-  },
-  optionButton: {
-    backgroundColor: '#95E1D3',
     padding: 20,
     borderRadius: 15,
+    width: '100%',
+  },
+  movesListTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  moveListItem: {
+    fontSize: 18,
+    color: '#666',
+    marginVertical: 5,
+  },
+  currentMoveListItem: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#81ECEC',
+  },
+  currentMoveContainer: {
+    backgroundColor: '#81ECEC',
+    padding: 30,
+    borderRadius: 20,
     alignItems: 'center',
+    width: '100%',
+  },
+  currentMoveLabel: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFF',
+    marginBottom: 10,
+  },
+  currentMoveText: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+  doneButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 50,
+    paddingVertical: 20,
+    borderRadius: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
     elevation: 5,
   },
-  optionText: {
+  doneButtonText: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#FFF',
@@ -201,7 +218,7 @@ const styles = StyleSheet.create({
   introTitle: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#95E1D3',
+    color: '#81ECEC',
     marginBottom: 20,
   },
   introText: {

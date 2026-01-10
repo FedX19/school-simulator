@@ -4,32 +4,26 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useProgress } from '@/contexts/progress-context';
 
-const { width } = Dimensions.get('window');
-
-interface SoundPair {
+interface FeelingPair {
   emoji: string;
-  name: string;
-  sound: string;
+  feeling: string;
   options: string[];
 }
 
-const SOUND_PAIRS: SoundPair[] = [
-  { emoji: '🐶', name: 'Dog', sound: 'Woof!', options: ['Woof!', 'Meow!', 'Moo!', 'Quack!'] },
-  { emoji: '🐱', name: 'Cat', sound: 'Meow!', options: ['Meow!', 'Woof!', 'Ribbit!', 'Roar!'] },
-  { emoji: '🐮', name: 'Cow', sound: 'Moo!', options: ['Moo!', 'Baa!', 'Neigh!', 'Oink!'] },
-  { emoji: '🐸', name: 'Frog', sound: 'Ribbit!', options: ['Ribbit!', 'Hiss!', 'Chirp!', 'Roar!'] },
-  { emoji: '🦁', name: 'Lion', sound: 'Roar!', options: ['Roar!', 'Meow!', 'Woof!', 'Moo!'] },
-  { emoji: '🐷', name: 'Pig', sound: 'Oink!', options: ['Oink!', 'Moo!', 'Quack!', 'Baa!'] },
-  { emoji: '🦆', name: 'Duck', sound: 'Quack!', options: ['Quack!', 'Chirp!', 'Hoot!', 'Woof!'] },
-  { emoji: '🐝', name: 'Bee', sound: 'Buzz!', options: ['Buzz!', 'Chirp!', 'Hiss!', 'Woof!'] },
+const FEELINGS: FeelingPair[] = [
+  { emoji: '😊', feeling: 'Happy', options: ['Happy', 'Sad', 'Angry', 'Scared'] },
+  { emoji: '😢', feeling: 'Sad', options: ['Sad', 'Happy', 'Silly', 'Surprised'] },
+  { emoji: '😠', feeling: 'Angry', options: ['Angry', 'Happy', 'Tired', 'Calm'] },
+  { emoji: '😱', feeling: 'Scared', options: ['Scared', 'Brave', 'Happy', 'Calm'] },
+  { emoji: '😴', feeling: 'Tired', options: ['Tired', 'Excited', 'Happy', 'Angry'] },
+  { emoji: '🤗', feeling: 'Loved', options: ['Loved', 'Lonely', 'Angry', 'Scared'] },
 ];
 
-export default function ScienceGame() {
+export default function FeelingsGame() {
   const router = useRouter();
   const { completeSubject } = useProgress();
   const [currentRound, setCurrentRound] = useState(0);
@@ -37,15 +31,15 @@ export default function ScienceGame() {
   const [showIntro, setShowIntro] = useState(true);
   const [showResults, setShowResults] = useState(false);
 
-  const totalRounds = 8;
-  const currentPair = SOUND_PAIRS[currentRound];
+  const totalRounds = 6;
+  const currentFeeling = FEELINGS[currentRound];
 
   const startGame = () => {
     setShowIntro(false);
   };
 
   const handleAnswer = (answer: string) => {
-    if (answer === currentPair.sound) {
+    if (answer === currentFeeling.feeling) {
       setScore(score + 1);
     }
 
@@ -57,7 +51,7 @@ export default function ScienceGame() {
   };
 
   const handleComplete = async () => {
-    await completeSubject('science');
+    await completeSubject('feelings');
     router.back();
   };
 
@@ -65,9 +59,9 @@ export default function ScienceGame() {
     return (
       <View style={styles.container}>
         <View style={styles.introContainer}>
-          <Text style={styles.introTitle}>🔊 Sound Matching 🔊</Text>
-          <Text style={styles.introText}>Match the animal with its sound!</Text>
-          <Text style={styles.introText}>What sound does each one make?</Text>
+          <Text style={styles.introTitle}>😊 Feelings 😊</Text>
+          <Text style={styles.introText}>Match the face with the feeling!</Text>
+          <Text style={styles.introText}>How are they feeling?</Text>
           <TouchableOpacity
             style={styles.startButton}
             onPress={startGame}>
@@ -82,13 +76,13 @@ export default function ScienceGame() {
     return (
       <View style={styles.container}>
         <View style={styles.resultsContainer}>
-          <Text style={styles.resultsTitle}>Great Listening!</Text>
+          <Text style={styles.resultsTitle}>Great Job!</Text>
           <Text style={styles.resultsScore}>You got {score} out of {totalRounds} correct!</Text>
-          <Text style={styles.resultsEmoji}>🔊✨</Text>
+          <Text style={styles.resultsEmoji}>😊✨</Text>
           <TouchableOpacity
             style={styles.completeButton}
             onPress={handleComplete}>
-            <Text style={styles.completeButtonText}>Complete Science ✓</Text>
+            <Text style={styles.completeButtonText}>Complete Feelings ✓</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -98,20 +92,17 @@ export default function ScienceGame() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>What sound does it make?</Text>
-        <Text style={styles.progress}>Sound {currentRound + 1} of {totalRounds}</Text>
+        <Text style={styles.headerText}>How do they feel?</Text>
+        <Text style={styles.progress}>Face {currentRound + 1} of {totalRounds}</Text>
       </View>
 
       <View style={styles.gameArea}>
-        {/* Animal */}
-        <View style={styles.animalContainer}>
-          <Text style={styles.animalEmoji}>{currentPair.emoji}</Text>
-          <Text style={styles.animalName}>{currentPair.name}</Text>
+        <View style={styles.faceContainer}>
+          <Text style={styles.faceEmoji}>{currentFeeling.emoji}</Text>
         </View>
 
-        {/* Options */}
         <View style={styles.optionsContainer}>
-          {currentPair.options.map((option) => (
+          {currentFeeling.options.map((option) => (
             <TouchableOpacity
               key={option}
               style={styles.optionButton}
@@ -131,7 +122,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFE5B4',
   },
   header: {
-    backgroundColor: '#95E1D3',
+    backgroundColor: '#FFA502',
     padding: 20,
     alignItems: 'center',
   },
@@ -151,10 +142,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
-  animalContainer: {
+  faceContainer: {
     backgroundColor: '#FFF',
-    padding: 40,
-    borderRadius: 20,
+    padding: 60,
+    borderRadius: 30,
     alignItems: 'center',
     marginBottom: 40,
     shadowColor: '#000',
@@ -163,21 +154,15 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 4,
   },
-  animalEmoji: {
-    fontSize: 100,
-    marginBottom: 10,
-  },
-  animalName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
+  faceEmoji: {
+    fontSize: 120,
   },
   optionsContainer: {
     width: '100%',
     gap: 15,
   },
   optionButton: {
-    backgroundColor: '#95E1D3',
+    backgroundColor: '#FFA502',
     padding: 20,
     borderRadius: 15,
     alignItems: 'center',
@@ -201,7 +186,7 @@ const styles = StyleSheet.create({
   introTitle: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#95E1D3',
+    color: '#FFA502',
     marginBottom: 20,
   },
   introText: {

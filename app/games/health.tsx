@@ -4,32 +4,28 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useProgress } from '@/contexts/progress-context';
 
-const { width } = Dimensions.get('window');
-
-interface SoundPair {
+interface FoodItem {
   emoji: string;
   name: string;
-  sound: string;
-  options: string[];
+  healthy: boolean;
 }
 
-const SOUND_PAIRS: SoundPair[] = [
-  { emoji: '🐶', name: 'Dog', sound: 'Woof!', options: ['Woof!', 'Meow!', 'Moo!', 'Quack!'] },
-  { emoji: '🐱', name: 'Cat', sound: 'Meow!', options: ['Meow!', 'Woof!', 'Ribbit!', 'Roar!'] },
-  { emoji: '🐮', name: 'Cow', sound: 'Moo!', options: ['Moo!', 'Baa!', 'Neigh!', 'Oink!'] },
-  { emoji: '🐸', name: 'Frog', sound: 'Ribbit!', options: ['Ribbit!', 'Hiss!', 'Chirp!', 'Roar!'] },
-  { emoji: '🦁', name: 'Lion', sound: 'Roar!', options: ['Roar!', 'Meow!', 'Woof!', 'Moo!'] },
-  { emoji: '🐷', name: 'Pig', sound: 'Oink!', options: ['Oink!', 'Moo!', 'Quack!', 'Baa!'] },
-  { emoji: '🦆', name: 'Duck', sound: 'Quack!', options: ['Quack!', 'Chirp!', 'Hoot!', 'Woof!'] },
-  { emoji: '🐝', name: 'Bee', sound: 'Buzz!', options: ['Buzz!', 'Chirp!', 'Hiss!', 'Woof!'] },
+const FOODS: FoodItem[] = [
+  { emoji: '🥗', name: 'Salad', healthy: true },
+  { emoji: '🍎', name: 'Apple', healthy: true },
+  { emoji: '🍕', name: 'Pizza', healthy: false },
+  { emoji: '🥦', name: 'Broccoli', healthy: true },
+  { emoji: '🍭', name: 'Candy', healthy: false },
+  { emoji: '🥕', name: 'Carrot', healthy: true },
+  { emoji: '🍔', name: 'Burger', healthy: false },
+  { emoji: '🍌', name: 'Banana', healthy: true },
 ];
 
-export default function ScienceGame() {
+export default function HealthGame() {
   const router = useRouter();
   const { completeSubject } = useProgress();
   const [currentRound, setCurrentRound] = useState(0);
@@ -38,14 +34,14 @@ export default function ScienceGame() {
   const [showResults, setShowResults] = useState(false);
 
   const totalRounds = 8;
-  const currentPair = SOUND_PAIRS[currentRound];
+  const currentFood = FOODS[currentRound];
 
   const startGame = () => {
     setShowIntro(false);
   };
 
-  const handleAnswer = (answer: string) => {
-    if (answer === currentPair.sound) {
+  const handleAnswer = (isHealthy: boolean) => {
+    if (isHealthy === currentFood.healthy) {
       setScore(score + 1);
     }
 
@@ -57,7 +53,7 @@ export default function ScienceGame() {
   };
 
   const handleComplete = async () => {
-    await completeSubject('science');
+    await completeSubject('health');
     router.back();
   };
 
@@ -65,9 +61,9 @@ export default function ScienceGame() {
     return (
       <View style={styles.container}>
         <View style={styles.introContainer}>
-          <Text style={styles.introTitle}>🔊 Sound Matching 🔊</Text>
-          <Text style={styles.introText}>Match the animal with its sound!</Text>
-          <Text style={styles.introText}>What sound does each one make?</Text>
+          <Text style={styles.introTitle}>🥗 Healthy Foods 🥗</Text>
+          <Text style={styles.introText}>Is this food healthy or treat?</Text>
+          <Text style={styles.introText}>Make good choices!</Text>
           <TouchableOpacity
             style={styles.startButton}
             onPress={startGame}>
@@ -82,13 +78,13 @@ export default function ScienceGame() {
     return (
       <View style={styles.container}>
         <View style={styles.resultsContainer}>
-          <Text style={styles.resultsTitle}>Great Listening!</Text>
+          <Text style={styles.resultsTitle}>Great Job!</Text>
           <Text style={styles.resultsScore}>You got {score} out of {totalRounds} correct!</Text>
-          <Text style={styles.resultsEmoji}>🔊✨</Text>
+          <Text style={styles.resultsEmoji}>🥗✨</Text>
           <TouchableOpacity
             style={styles.completeButton}
             onPress={handleComplete}>
-            <Text style={styles.completeButtonText}>Complete Science ✓</Text>
+            <Text style={styles.completeButtonText}>Complete Health ✓</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -98,27 +94,28 @@ export default function ScienceGame() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>What sound does it make?</Text>
-        <Text style={styles.progress}>Sound {currentRound + 1} of {totalRounds}</Text>
+        <Text style={styles.headerText}>Is this healthy?</Text>
+        <Text style={styles.progress}>Food {currentRound + 1} of {totalRounds}</Text>
       </View>
 
       <View style={styles.gameArea}>
-        {/* Animal */}
-        <View style={styles.animalContainer}>
-          <Text style={styles.animalEmoji}>{currentPair.emoji}</Text>
-          <Text style={styles.animalName}>{currentPair.name}</Text>
+        <View style={styles.foodContainer}>
+          <Text style={styles.foodEmoji}>{currentFood.emoji}</Text>
+          <Text style={styles.foodName}>{currentFood.name}</Text>
         </View>
 
-        {/* Options */}
-        <View style={styles.optionsContainer}>
-          {currentPair.options.map((option) => (
-            <TouchableOpacity
-              key={option}
-              style={styles.optionButton}
-              onPress={() => handleAnswer(option)}>
-              <Text style={styles.optionText}>{option}</Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.buttonsContainer}>
+          <TouchableOpacity
+            style={[styles.choiceButton, styles.healthyButton]}
+            onPress={() => handleAnswer(true)}>
+            <Text style={styles.choiceText}>Healthy Food</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.choiceButton, styles.treatButton]}
+            onPress={() => handleAnswer(false)}>
+            <Text style={styles.choiceText}>Sometimes Treat</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -131,7 +128,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFE5B4',
   },
   header: {
-    backgroundColor: '#95E1D3',
+    backgroundColor: '#55EFC4',
     padding: 20,
     alignItems: 'center',
   },
@@ -151,9 +148,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
-  animalContainer: {
+  foodContainer: {
     backgroundColor: '#FFF',
-    padding: 40,
+    padding: 50,
     borderRadius: 20,
     alignItems: 'center',
     marginBottom: 40,
@@ -163,22 +160,21 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 4,
   },
-  animalEmoji: {
+  foodEmoji: {
     fontSize: 100,
     marginBottom: 10,
   },
-  animalName: {
+  foodName: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#333',
   },
-  optionsContainer: {
+  buttonsContainer: {
     width: '100%',
-    gap: 15,
+    gap: 20,
   },
-  optionButton: {
-    backgroundColor: '#95E1D3',
-    padding: 20,
+  choiceButton: {
+    padding: 25,
     borderRadius: 15,
     alignItems: 'center',
     shadowColor: '#000',
@@ -187,7 +183,13 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 5,
   },
-  optionText: {
+  healthyButton: {
+    backgroundColor: '#55EFC4',
+  },
+  treatButton: {
+    backgroundColor: '#FFA502',
+  },
+  choiceText: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#FFF',
@@ -201,7 +203,7 @@ const styles = StyleSheet.create({
   introTitle: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#95E1D3',
+    color: '#55EFC4',
     marginBottom: 20,
   },
   introText: {

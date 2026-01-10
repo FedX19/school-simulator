@@ -4,60 +4,34 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useProgress } from '@/contexts/progress-context';
 
-const { width } = Dimensions.get('window');
-
-interface SoundPair {
-  emoji: string;
-  name: string;
-  sound: string;
-  options: string[];
-}
-
-const SOUND_PAIRS: SoundPair[] = [
-  { emoji: '🐶', name: 'Dog', sound: 'Woof!', options: ['Woof!', 'Meow!', 'Moo!', 'Quack!'] },
-  { emoji: '🐱', name: 'Cat', sound: 'Meow!', options: ['Meow!', 'Woof!', 'Ribbit!', 'Roar!'] },
-  { emoji: '🐮', name: 'Cow', sound: 'Moo!', options: ['Moo!', 'Baa!', 'Neigh!', 'Oink!'] },
-  { emoji: '🐸', name: 'Frog', sound: 'Ribbit!', options: ['Ribbit!', 'Hiss!', 'Chirp!', 'Roar!'] },
-  { emoji: '🦁', name: 'Lion', sound: 'Roar!', options: ['Roar!', 'Meow!', 'Woof!', 'Moo!'] },
-  { emoji: '🐷', name: 'Pig', sound: 'Oink!', options: ['Oink!', 'Moo!', 'Quack!', 'Baa!'] },
-  { emoji: '🦆', name: 'Duck', sound: 'Quack!', options: ['Quack!', 'Chirp!', 'Hoot!', 'Woof!'] },
-  { emoji: '🐝', name: 'Bee', sound: 'Buzz!', options: ['Buzz!', 'Chirp!', 'Hiss!', 'Woof!'] },
-];
-
-export default function ScienceGame() {
+export default function WritingGame() {
   const router = useRouter();
   const { completeSubject } = useProgress();
-  const [currentRound, setCurrentRound] = useState(0);
-  const [score, setScore] = useState(0);
+  const [round, setRound] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
   const [showResults, setShowResults] = useState(false);
 
-  const totalRounds = 8;
-  const currentPair = SOUND_PAIRS[currentRound];
+  const totalRounds = 3;
+  const name = "ALEX"; // Simplified for kindergarten
 
   const startGame = () => {
     setShowIntro(false);
   };
 
-  const handleAnswer = (answer: string) => {
-    if (answer === currentPair.sound) {
-      setScore(score + 1);
-    }
-
-    if (currentRound + 1 >= totalRounds) {
+  const handleTrace = () => {
+    if (round + 1 >= totalRounds) {
       setShowResults(true);
     } else {
-      setCurrentRound(currentRound + 1);
+      setRound(round + 1);
     }
   };
 
   const handleComplete = async () => {
-    await completeSubject('science');
+    await completeSubject('writing');
     router.back();
   };
 
@@ -65,9 +39,9 @@ export default function ScienceGame() {
     return (
       <View style={styles.container}>
         <View style={styles.introContainer}>
-          <Text style={styles.introTitle}>🔊 Sound Matching 🔊</Text>
-          <Text style={styles.introText}>Match the animal with its sound!</Text>
-          <Text style={styles.introText}>What sound does each one make?</Text>
+          <Text style={styles.introTitle}>✏️ Name Tracing ✏️</Text>
+          <Text style={styles.introText}>Trace the name 3 times!</Text>
+          <Text style={styles.introText}>Practice makes perfect!</Text>
           <TouchableOpacity
             style={styles.startButton}
             onPress={startGame}>
@@ -82,13 +56,13 @@ export default function ScienceGame() {
     return (
       <View style={styles.container}>
         <View style={styles.resultsContainer}>
-          <Text style={styles.resultsTitle}>Great Listening!</Text>
-          <Text style={styles.resultsScore}>You got {score} out of {totalRounds} correct!</Text>
-          <Text style={styles.resultsEmoji}>🔊✨</Text>
+          <Text style={styles.resultsTitle}>Great Writing!</Text>
+          <Text style={styles.resultsScore}>You traced the name {totalRounds} times!</Text>
+          <Text style={styles.resultsEmoji}>✏️✨</Text>
           <TouchableOpacity
             style={styles.completeButton}
             onPress={handleComplete}>
-            <Text style={styles.completeButtonText}>Complete Science ✓</Text>
+            <Text style={styles.completeButtonText}>Complete Writing ✓</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -98,28 +72,21 @@ export default function ScienceGame() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>What sound does it make?</Text>
-        <Text style={styles.progress}>Sound {currentRound + 1} of {totalRounds}</Text>
+        <Text style={styles.headerText}>Trace the Name</Text>
+        <Text style={styles.progress}>Trace {round + 1} of {totalRounds}</Text>
       </View>
 
       <View style={styles.gameArea}>
-        {/* Animal */}
-        <View style={styles.animalContainer}>
-          <Text style={styles.animalEmoji}>{currentPair.emoji}</Text>
-          <Text style={styles.animalName}>{currentPair.name}</Text>
+        <View style={styles.nameContainer}>
+          <Text style={styles.nameText}>{name}</Text>
+          <Text style={styles.helpText}>Tap when done tracing!</Text>
         </View>
 
-        {/* Options */}
-        <View style={styles.optionsContainer}>
-          {currentPair.options.map((option) => (
-            <TouchableOpacity
-              key={option}
-              style={styles.optionButton}
-              onPress={() => handleAnswer(option)}>
-              <Text style={styles.optionText}>{option}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <TouchableOpacity
+          style={styles.tracedButton}
+          onPress={handleTrace}>
+          <Text style={styles.tracedButtonText}>I Traced It! ✓</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -131,7 +98,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFE5B4',
   },
   header: {
-    backgroundColor: '#95E1D3',
+    backgroundColor: '#A29BFE',
     padding: 20,
     alignItems: 'center',
   },
@@ -151,43 +118,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
-  animalContainer: {
+  nameContainer: {
     backgroundColor: '#FFF',
     padding: 40,
     borderRadius: 20,
     alignItems: 'center',
     marginBottom: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
+    borderWidth: 3,
+    borderColor: '#A29BFE',
+    borderStyle: 'dashed',
   },
-  animalEmoji: {
-    fontSize: 100,
-    marginBottom: 10,
-  },
-  animalName: {
-    fontSize: 28,
+  nameText: {
+    fontSize: 72,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#A29BFE',
+    letterSpacing: 10,
+    marginBottom: 20,
   },
-  optionsContainer: {
-    width: '100%',
-    gap: 15,
+  helpText: {
+    fontSize: 18,
+    color: '#666',
   },
-  optionButton: {
-    backgroundColor: '#95E1D3',
-    padding: 20,
+  tracedButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 40,
+    paddingVertical: 20,
     borderRadius: 15,
-    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
     elevation: 5,
   },
-  optionText: {
+  tracedButtonText: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#FFF',
@@ -201,7 +164,7 @@ const styles = StyleSheet.create({
   introTitle: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#95E1D3',
+    color: '#A29BFE',
     marginBottom: 20,
   },
   introText: {
@@ -238,6 +201,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: '#333',
     marginBottom: 20,
+    textAlign: 'center',
   },
   resultsEmoji: {
     fontSize: 60,

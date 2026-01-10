@@ -4,70 +4,79 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
+  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useProgress } from '@/contexts/progress-context';
 
-const { width } = Dimensions.get('window');
+const SHAPES = ['Circle', 'Square', 'Triangle'];
 
-interface SoundPair {
-  emoji: string;
-  name: string;
-  sound: string;
-  options: string[];
-}
-
-const SOUND_PAIRS: SoundPair[] = [
-  { emoji: '🐶', name: 'Dog', sound: 'Woof!', options: ['Woof!', 'Meow!', 'Moo!', 'Quack!'] },
-  { emoji: '🐱', name: 'Cat', sound: 'Meow!', options: ['Meow!', 'Woof!', 'Ribbit!', 'Roar!'] },
-  { emoji: '🐮', name: 'Cow', sound: 'Moo!', options: ['Moo!', 'Baa!', 'Neigh!', 'Oink!'] },
-  { emoji: '🐸', name: 'Frog', sound: 'Ribbit!', options: ['Ribbit!', 'Hiss!', 'Chirp!', 'Roar!'] },
-  { emoji: '🦁', name: 'Lion', sound: 'Roar!', options: ['Roar!', 'Meow!', 'Woof!', 'Moo!'] },
-  { emoji: '🐷', name: 'Pig', sound: 'Oink!', options: ['Oink!', 'Moo!', 'Quack!', 'Baa!'] },
-  { emoji: '🦆', name: 'Duck', sound: 'Quack!', options: ['Quack!', 'Chirp!', 'Hoot!', 'Woof!'] },
-  { emoji: '🐝', name: 'Bee', sound: 'Buzz!', options: ['Buzz!', 'Chirp!', 'Hiss!', 'Woof!'] },
-];
-
-export default function ScienceGame() {
+export default function ShapesGame() {
   const router = useRouter();
   const { completeSubject } = useProgress();
   const [currentRound, setCurrentRound] = useState(0);
   const [score, setScore] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
   const [showResults, setShowResults] = useState(false);
+  const [targetShape, setTargetShape] = useState('');
+  const [shapes, setShapes] = useState<string[]>([]);
 
-  const totalRounds = 8;
-  const currentPair = SOUND_PAIRS[currentRound];
+  const totalRounds = 3;
 
   const startGame = () => {
     setShowIntro(false);
+    setupRound(0);
   };
 
-  const handleAnswer = (answer: string) => {
-    if (answer === currentPair.sound) {
+  const setupRound = (roundNum: number) => {
+    const target = SHAPES[roundNum % SHAPES.length];
+    setTargetShape(target);
+
+    // Show all 3 shapes in random order
+    const allShapes = [...SHAPES].sort(() => Math.random() - 0.5);
+    setShapes(allShapes);
+    setCurrentRound(roundNum);
+  };
+
+  const handleShapeTap = (shape: string) => {
+    if (shape === targetShape) {
       setScore(score + 1);
     }
 
     if (currentRound + 1 >= totalRounds) {
       setShowResults(true);
     } else {
-      setCurrentRound(currentRound + 1);
+      setupRound(currentRound + 1);
     }
   };
 
   const handleComplete = async () => {
-    await completeSubject('science');
+    await completeSubject('shapes');
     router.back();
+  };
+
+  const renderShape = (shape: string) => {
+    switch (shape) {
+      case 'Circle':
+        return <View style={styles.circle} />;
+      case 'Square':
+        return <View style={styles.square} />;
+      case 'Triangle':
+        return <View style={styles.triangleContainer}>
+          <View style={styles.triangle} />
+        </View>;
+      default:
+        return null;
+    }
   };
 
   if (showIntro) {
     return (
       <View style={styles.container}>
         <View style={styles.introContainer}>
-          <Text style={styles.introTitle}>🔊 Sound Matching 🔊</Text>
-          <Text style={styles.introText}>Match the animal with its sound!</Text>
-          <Text style={styles.introText}>What sound does each one make?</Text>
+          <Text style={styles.introTitle}>⬜ Shapes ⬜</Text>
+          <Text style={styles.introText}>Find the shape I ask for!</Text>
+          <Text style={styles.introText}>Circle, Square, or Triangle?</Text>
           <TouchableOpacity
             style={styles.startButton}
             onPress={startGame}>
@@ -82,13 +91,13 @@ export default function ScienceGame() {
     return (
       <View style={styles.container}>
         <View style={styles.resultsContainer}>
-          <Text style={styles.resultsTitle}>Great Listening!</Text>
+          <Text style={styles.resultsTitle}>Great Job!</Text>
           <Text style={styles.resultsScore}>You got {score} out of {totalRounds} correct!</Text>
-          <Text style={styles.resultsEmoji}>🔊✨</Text>
+          <Text style={styles.resultsEmoji}>⬜✨</Text>
           <TouchableOpacity
             style={styles.completeButton}
             onPress={handleComplete}>
-            <Text style={styles.completeButtonText}>Complete Science ✓</Text>
+            <Text style={styles.completeButtonText}>Complete Shapes ✓</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -98,28 +107,20 @@ export default function ScienceGame() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>What sound does it make?</Text>
-        <Text style={styles.progress}>Sound {currentRound + 1} of {totalRounds}</Text>
+        <Text style={styles.headerText}>Find the: {targetShape}</Text>
+        <Text style={styles.progress}>Shape {currentRound + 1} of {totalRounds}</Text>
       </View>
 
       <View style={styles.gameArea}>
-        {/* Animal */}
-        <View style={styles.animalContainer}>
-          <Text style={styles.animalEmoji}>{currentPair.emoji}</Text>
-          <Text style={styles.animalName}>{currentPair.name}</Text>
-        </View>
-
-        {/* Options */}
-        <View style={styles.optionsContainer}>
-          {currentPair.options.map((option) => (
-            <TouchableOpacity
-              key={option}
-              style={styles.optionButton}
-              onPress={() => handleAnswer(option)}>
-              <Text style={styles.optionText}>{option}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {shapes.map((shape) => (
+          <TouchableOpacity
+            key={shape}
+            style={styles.shapeButton}
+            onPress={() => handleShapeTap(shape)}>
+            {renderShape(shape)}
+            <Text style={styles.shapeLabel}>{shape}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
     </View>
   );
@@ -131,7 +132,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFE5B4',
   },
   header: {
-    backgroundColor: '#95E1D3',
+    backgroundColor: '#74B9FF',
     padding: 20,
     alignItems: 'center',
   },
@@ -150,47 +151,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+    gap: 30,
   },
-  animalContainer: {
-    backgroundColor: '#FFF',
-    padding: 40,
-    borderRadius: 20,
+  shapeButton: {
     alignItems: 'center',
-    marginBottom: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
+    padding: 20,
   },
-  animalEmoji: {
-    fontSize: 100,
+  circle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#74B9FF',
     marginBottom: 10,
   },
-  animalName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
+  square: {
+    width: 100,
+    height: 100,
+    backgroundColor: '#74B9FF',
+    marginBottom: 10,
   },
-  optionsContainer: {
-    width: '100%',
-    gap: 15,
-  },
-  optionButton: {
-    backgroundColor: '#95E1D3',
-    padding: 20,
-    borderRadius: 15,
+  triangleContainer: {
+    width: 100,
+    height: 100,
+    marginBottom: 10,
+    justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
   },
-  optionText: {
+  triangle: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 50,
+    borderRightWidth: 50,
+    borderBottomWidth: 87,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: '#74B9FF',
+  },
+  shapeLabel: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFF',
+    color: '#333',
   },
   introContainer: {
     flex: 1,
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   introTitle: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#95E1D3',
+    color: '#74B9FF',
     marginBottom: 20,
   },
   introText: {
