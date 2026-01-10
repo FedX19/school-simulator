@@ -41,6 +41,7 @@ export default function MathGame() {
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bubbleAnims = useRef<Animated.Value[]>([]).current;
+  const bubblePositions = useRef<{ x: Animated.Value; y: Animated.Value }[]>([]).current;
 
   useEffect(() => {
     if (gameState === 'playing' && !question) {
@@ -98,11 +99,39 @@ export default function MathGame() {
 
     // Initialize bubble animations
     bubbleAnims.length = 0;
-    shuffled.forEach(() => {
+    bubblePositions.length = 0;
+
+    shuffled.forEach((_, index) => {
       bubbleAnims.push(new Animated.Value(0));
+
+      // Random starting positions
+      const xPos = new Animated.Value(Math.random() * (width - 140) + 20);
+      const yPos = new Animated.Value(Math.random() * 150);
+      bubblePositions.push({ x: xPos, y: yPos });
+
+      // Floating animation loop
+      const floatBubble = () => {
+        Animated.loop(
+          Animated.sequence([
+            Animated.parallel([
+              Animated.timing(xPos, {
+                toValue: Math.random() * (width - 140) + 20,
+                duration: 3000 + Math.random() * 2000,
+                useNativeDriver: true,
+              }),
+              Animated.timing(yPos, {
+                toValue: Math.random() * 150,
+                duration: 3000 + Math.random() * 2000,
+                useNativeDriver: true,
+              }),
+            ]),
+          ])
+        ).start();
+      };
+      floatBubble();
     });
 
-    // Animate bubbles in
+    // Animate bubbles in (scale)
     Animated.stagger(
       100,
       bubbleAnims.map((anim) =>
@@ -314,6 +343,7 @@ export default function MathGame() {
         {options.map((option, index) => {
           const isWrong = wrongAnswer === option;
           const scale = bubbleAnims[index] || new Animated.Value(1);
+          const position = bubblePositions[index] || { x: new Animated.Value(0), y: new Animated.Value(0) };
 
           return (
             <Animated.View
@@ -321,7 +351,11 @@ export default function MathGame() {
               style={[
                 styles.bubbleWrapper,
                 {
-                  transform: [{ scale }],
+                  transform: [
+                    { translateX: position.x },
+                    { translateY: position.y },
+                    { scale }
+                  ],
                   opacity: scale,
                 },
               ]}>
@@ -576,20 +610,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   bubblesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 15,
+    flex: 1,
+    position: 'relative',
     marginBottom: 30,
+    minHeight: 200,
   },
   bubbleWrapper: {
-    width: (width - 80) / 3,
-    aspectRatio: 1,
+    position: 'absolute',
+    width: 90,
+    height: 90,
   },
   bubble: {
-    flex: 1,
+    width: 90,
+    height: 90,
     backgroundColor: '#FFF',
-    borderRadius: 100,
+    borderRadius: 45,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -605,7 +640,7 @@ const styles = StyleSheet.create({
     borderColor: '#F44336',
   },
   bubbleText: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#FF6B6B',
   },

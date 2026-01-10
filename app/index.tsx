@@ -8,9 +8,10 @@ import {
   Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle, Rect, Path, Line, Ellipse } from 'react-native-svg';
 
 const { width, height } = Dimensions.get('window');
+const svgSize = Math.min(width, height) * 0.9;
 
 export default function SchoolEntrance() {
   const router = useRouter();
@@ -35,65 +36,120 @@ export default function SchoolEntrance() {
 
   return (
     <View style={styles.container}>
-      {/* Sky background */}
-      <LinearGradient
-        colors={['#87CEEB', '#E0F6FF']}
-        style={styles.background}
-      />
+      {/* School SVG Icon */}
+      <Svg
+        width={svgSize}
+        height={svgSize}
+        viewBox="0 0 1024 1024"
+        style={styles.svg}>
+        {/* Background circle */}
+        <Circle cx="512" cy="512" r="512" fill="#4A90E2" />
 
-      {/* School building */}
-      <View style={styles.school}>
+        {/* Ground */}
+        <Rect x="0" y="700" width="1024" height="324" fill="#7CB342" />
+
+        {/* School building main structure */}
+        <Rect x="200" y="400" width="624" height="400" fill="#E74C3C" rx="10" />
+
         {/* Roof */}
-        <View style={styles.roof}>
-          <View style={styles.roofTriangle} />
-        </View>
+        <Path d="M 150 400 L 512 200 L 874 400 Z" fill="#C0392B" />
 
-        {/* School name */}
-        <View style={styles.nameContainer}>
-          <Text style={styles.schoolName}>HAPPY SCHOOL</Text>
-        </View>
+        {/* Bell tower base */}
+        <Rect x="462" y="200" width="100" height="100" fill="#E74C3C" rx="5" />
 
-        {/* Building body */}
-        <View style={styles.building}>
-          {/* Windows row 1 */}
-          <View style={styles.windowRow}>
-            <View style={styles.window} />
-            <View style={styles.window} />
-            <View style={styles.window} />
-          </View>
+        {/* Bell tower roof */}
+        <Path d="M 442 200 L 512 150 L 582 200 Z" fill="#C0392B" />
 
-          {/* Door */}
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={handleDoorPress}>
-            <Animated.View
-              style={[
-                styles.door,
-                {
-                  transform: [{ scale: doorScale }],
-                },
-              ]}>
-              <View style={styles.doorKnob} />
-              <Text style={styles.doorText}>TAP TO ENTER</Text>
-            </Animated.View>
-          </TouchableOpacity>
+        {/* Bell */}
+        <Circle cx="512" cy="180" r="15" fill="#F1C40F" stroke="#000" strokeWidth="3" />
 
-          {/* Windows row 2 */}
-          <View style={styles.windowRow}>
-            <View style={styles.window} />
-            <View style={styles.window} />
-          </View>
-        </View>
-      </View>
+        {/* Flag pole */}
+        <Rect x="508" y="100" width="8" height="50" fill="#34495E" />
 
-      {/* Ground */}
-      <View style={styles.ground} />
+        {/* Flag */}
+        <Path d="M 516 110 L 576 125 L 516 140 Z" fill="#F39C12" />
+
+        {/* Main door */}
+        <Rect x="437" y="600" width="150" height="200" fill="#8B4513" rx="10" />
+        <Rect x="437" y="600" width="75" height="200" fill="#A0522D" rx="10" />
+        <Circle cx="560" cy="700" r="8" fill="#F1C40F" />
+
+        {/* Windows row 1 */}
+        <Rect x="250" y="450" width="80" height="80" fill="#87CEEB" rx="5" stroke="#34495E" strokeWidth="4" />
+        <Rect x="370" y="450" width="80" height="80" fill="#87CEEB" rx="5" stroke="#34495E" strokeWidth="4" />
+        <Rect x="574" y="450" width="80" height="80" fill="#87CEEB" rx="5" stroke="#34495E" strokeWidth="4" />
+        <Rect x="694" y="450" width="80" height="80" fill="#87CEEB" rx="5" stroke="#34495E" strokeWidth="4" />
+
+        {/* Windows row 2 */}
+        <Rect x="250" y="570" width="80" height="80" fill="#87CEEB" rx="5" stroke="#34495E" strokeWidth="4" />
+        <Rect x="370" y="570" width="80" height="80" fill="#87CEEB" rx="5" stroke="#34495E" strokeWidth="4" />
+        <Rect x="574" y="570" width="80" height="80" fill="#87CEEB" rx="5" stroke="#34495E" strokeWidth="4" />
+        <Rect x="694" y="570" width="80" height="80" fill="#87CEEB" rx="5" stroke="#34495E" strokeWidth="4" />
+
+        {/* Window panes Row 1 */}
+        <Line x1="290" y1="450" x2="290" y2="530" stroke="#34495E" strokeWidth="3" />
+        <Line x1="250" y1="490" x2="330" y2="490" stroke="#34495E" strokeWidth="3" />
+        <Line x1="410" y1="450" x2="410" y2="530" stroke="#34495E" strokeWidth="3" />
+        <Line x1="370" y1="490" x2="450" y2="490" stroke="#34495E" strokeWidth="3" />
+        <Line x1="614" y1="450" x2="614" y2="530" stroke="#34495E" strokeWidth="3" />
+        <Line x1="574" y1="490" x2="654" y2="490" stroke="#34495E" strokeWidth="3" />
+        <Line x1="734" y1="450" x2="734" y2="530" stroke="#34495E" strokeWidth="3" />
+        <Line x1="694" y1="490" x2="774" y2="490" stroke="#34495E" strokeWidth="3" />
+
+        {/* Window panes Row 2 */}
+        <Line x1="290" y1="570" x2="290" y2="650" stroke="#34495E" strokeWidth="3" />
+        <Line x1="250" y1="610" x2="330" y2="610" stroke="#34495E" strokeWidth="3" />
+        <Line x1="410" y1="570" x2="410" y2="650" stroke="#34495E" strokeWidth="3" />
+        <Line x1="370" y1="610" x2="450" y2="610" stroke="#34495E" strokeWidth="3" />
+        <Line x1="614" y1="570" x2="614" y2="650" stroke="#34495E" strokeWidth="3" />
+        <Line x1="574" y1="610" x2="654" y2="610" stroke="#34495E" strokeWidth="3" />
+        <Line x1="734" y1="570" x2="734" y2="650" stroke="#34495E" strokeWidth="3" />
+        <Line x1="694" y1="610" x2="774" y2="610" stroke="#34495E" strokeWidth="3" />
+
+        {/* Door steps */}
+        <Rect x="400" y="780" width="224" height="20" fill="#95A5A6" />
+        <Rect x="380" y="800" width="264" height="20" fill="#7F8C8D" />
+
+        {/* Bushes left */}
+        <Circle cx="160" cy="720" r="40" fill="#27AE60" />
+        <Circle cx="190" cy="710" r="35" fill="#2ECC71" />
+        <Circle cx="140" cy="710" r="35" fill="#2ECC71" />
+
+        {/* Bushes right */}
+        <Circle cx="864" cy="720" r="40" fill="#27AE60" />
+        <Circle cx="894" cy="710" r="35" fill="#2ECC71" />
+        <Circle cx="844" cy="710" r="35" fill="#2ECC71" />
+
+        {/* Sun */}
+        <Circle cx="850" cy="280" r="50" fill="#F1C40F" opacity="0.9" />
+
+        {/* Clouds */}
+        <Ellipse cx="200" cy="280" rx="50" ry="30" fill="white" opacity="0.8" />
+        <Ellipse cx="230" cy="270" rx="40" ry="25" fill="white" opacity="0.8" />
+        <Ellipse cx="170" cy="270" rx="40" ry="25" fill="white" opacity="0.8" />
+      </Svg>
 
       {/* Welcome text */}
       <View style={styles.welcomeContainer}>
         <Text style={styles.welcomeText}>Welcome to School!</Text>
-        <Text style={styles.subtitleText}>Tap the door to start learning</Text>
+        <Text style={styles.subtitleText}>Tap the school to start learning</Text>
       </View>
+
+      {/* Tap to enter button */}
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={handleDoorPress}
+        style={styles.enterButton}>
+        <Animated.View
+          style={[
+            styles.enterButtonInner,
+            {
+              transform: [{ scale: doorScale }],
+            },
+          ]}>
+          <Text style={styles.enterButtonText}>TAP TO ENTER</Text>
+        </Animated.View>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -102,136 +158,53 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#87CEEB',
-  },
-  background: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    height: height * 0.7,
-  },
-  school: {
     alignItems: 'center',
-    marginTop: height * 0.15,
+    justifyContent: 'space-around',
+    paddingVertical: 40,
   },
-  roof: {
-    width: width * 0.7,
-    height: 60,
+  svg: {
+    marginTop: 20,
+  },
+  welcomeContainer: {
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  roofTriangle: {
-    width: 0,
-    height: 0,
-    backgroundColor: 'transparent',
-    borderStyle: 'solid',
-    borderLeftWidth: width * 0.35,
-    borderRightWidth: width * 0.35,
-    borderBottomWidth: 60,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: '#8B4513',
-  },
-  nameContainer: {
-    backgroundColor: '#8B4513',
     paddingHorizontal: 20,
-    paddingVertical: 8,
-    marginBottom: -5,
-    zIndex: 1,
   },
-  schoolName: {
-    fontSize: 24,
+  welcomeText: {
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#FFD700',
-    letterSpacing: 2,
+    color: '#FFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 5,
+    textAlign: 'center',
   },
-  building: {
-    width: width * 0.7,
-    backgroundColor: '#DC143C',
-    borderRadius: 10,
-    padding: 20,
-    alignItems: 'center',
+  subtitleText: {
+    fontSize: 20,
+    color: '#FFF',
+    marginTop: 10,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+    textAlign: 'center',
+  },
+  enterButton: {
+    marginBottom: 20,
+  },
+  enterButtonInner: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 50,
+    paddingVertical: 20,
+    borderRadius: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 8,
   },
-  windowRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    marginVertical: 10,
-  },
-  window: {
-    width: 60,
-    height: 60,
-    backgroundColor: '#87CEEB',
-    borderRadius: 5,
-    borderWidth: 3,
-    borderColor: '#FFF',
-  },
-  door: {
-    width: 100,
-    height: 140,
-    backgroundColor: '#8B4513',
-    borderRadius: 10,
-    marginVertical: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#654321',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
-  },
-  doorKnob: {
-    width: 12,
-    height: 12,
-    backgroundColor: '#FFD700',
-    borderRadius: 6,
-    position: 'absolute',
-    right: 15,
-    top: '50%',
-  },
-  doorText: {
-    color: '#FFD700',
-    fontSize: 14,
+  enterButtonText: {
+    color: '#FFF',
+    fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginTop: 10,
-  },
-  ground: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: height * 0.15,
-    backgroundColor: '#228B22',
-  },
-  welcomeContainer: {
-    position: 'absolute',
-    bottom: height * 0.2,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  welcomeText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#FFF',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 5,
-  },
-  subtitleText: {
-    fontSize: 18,
-    color: '#FFF',
-    marginTop: 8,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
   },
 });
