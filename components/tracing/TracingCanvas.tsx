@@ -220,6 +220,25 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
     };
   }, [progress, onProgressUpdate]);
 
+  // Reset state when letter changes
+  useEffect(() => {
+    // Cancel any pending RAF
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+
+    // Reset all state to initial values
+    setUserStrokes([]);
+    setCurrentStroke([]);
+    setActiveStrokeIndex(0);
+    setCoveredPoints(new Set());
+    setIsCompleted(false);
+    setProgress(0);
+    setTotalDrawnDistance(0);
+    setFirstDrawTime(null);
+  }, [letter]);
+
   // Convert stroke points to SVG path
   const strokeToPath = (stroke: UserStrokePoint[]): string => {
     if (stroke.length === 0) return '';
