@@ -5,8 +5,9 @@ import type { LetterDefinition, Point } from '@/data/letters';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CANVAS_SIZE = Math.min(screenWidth - 40, 400);
-const COVERAGE_RADIUS = 18; // How close user stroke must be to target point
-const LETTER_COMPLETION_THRESHOLD = 0.85; // 85% to complete a letter
+const COVERAGE_RADIUS = 30; // How close user stroke must be to target point
+const LETTER_COMPLETION_THRESHOLD = 0.72; // 72% to complete a letter
+const INTERPOLATION_STEP = 8; // Generate intermediate points every ~8px
 
 interface TracingCanvasProps {
   letter: LetterDefinition;
@@ -39,6 +40,27 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
     const dx = p1.x - p2.x;
     const dy = p1.y - p2.y;
     return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // Generate intermediate points between two points for smooth coverage
+  const interpolatePoints = (p1: UserStrokePoint, p2: UserStrokePoint): UserStrokePoint[] => {
+    const dist = distance(p1, p2);
+    if (dist <= INTERPOLATION_STEP) {
+      return [p2];
+    }
+
+    const points: UserStrokePoint[] = [];
+    const numSteps = Math.ceil(dist / INTERPOLATION_STEP);
+
+    for (let i = 1; i <= numSteps; i++) {
+      const t = i / numSteps;
+      points.push({
+        x: p1.x + (p2.x - p1.x) * t,
+        y: p1.y + (p2.y - p1.y) * t,
+      });
+    }
+
+    return points;
   };
 
   // Check which target points are covered by user strokes
@@ -80,7 +102,7 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
       ).length;
       const strokeProgress = activeStrokeCovered / activeStrokePoints;
 
-      if (strokeProgress >= 0.75 && activeStrokeIndex < letter.strokes.length - 1) {
+      if (strokeProgress >= 0.60 && activeStrokeIndex < letter.strokes.length - 1) {
         // Advance to next stroke
         setActiveStrokeIndex(activeStrokeIndex + 1);
       }
@@ -102,8 +124,23 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
       onPanResponderMove: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
         const point = { x: locationX, y: locationY };
-        setCurrentStroke((prev) => [...prev, point]);
-        checkCoverage(point);
+
+        setCurrentStroke((prev) => {
+          if (prev.length > 0) {
+            // Interpolate between last point and new point
+            const lastPoint = prev[prev.length - 1];
+            const interpolated = interpolatePoints(lastPoint, point);
+
+            // Check coverage for all interpolated points
+            interpolated.forEach(p => checkCoverage(p));
+
+            return [...prev, ...interpolated];
+          } else {
+            // First point in stroke
+            checkCoverage(point);
+            return [point];
+          }
+        });
       },
       onPanResponderRelease: () => {
         onTraceEnd?.();
