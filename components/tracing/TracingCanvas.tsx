@@ -67,48 +67,51 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
 
   // Check which target points are covered by user strokes
   const checkCoverage = (userPoint: UserStrokePoint) => {
-    const newCoveredPoints = new Set(coveredPoints);
     const activeStroke = letter.strokes[activeStrokeIndex];
-
     if (!activeStroke) return;
 
-    // Check points in the active stroke only
-    activeStroke.points.forEach((targetPoint, idx) => {
-      const scaledTarget = scalePoint(targetPoint);
-      const dist = distance(scaledTarget, userPoint);
+    // Use functional update to avoid stale state in tight loops
+    setCoveredPoints(prev => {
+      const next = new Set(prev);
 
-      if (dist < COVERAGE_RADIUS) {
-        const key = `${activeStrokeIndex}-${idx}`;
-        newCoveredPoints.add(key);
+      // Check points in the active stroke only
+      activeStroke.points.forEach((targetPoint, idx) => {
+        const scaledTarget = scalePoint(targetPoint);
+        const dist = distance(scaledTarget, userPoint);
+
+        if (dist < COVERAGE_RADIUS) {
+          const key = `${activeStrokeIndex}-${idx}`;
+          next.add(key);
+        }
+      });
+
+      // Calculate progress from the fresh 'next' set
+      const totalPoints = letter.strokes.reduce((sum, stroke) => sum + stroke.points.length, 0);
+      const calculatedProgress = next.size / totalPoints;
+      setProgress(calculatedProgress);
+
+      // Check if letter is complete
+      if (calculatedProgress >= LETTER_COMPLETION_THRESHOLD && !isCompleted) {
+        setIsCompleted(true);
+        setTimeout(() => {
+          onLetterComplete();
+        }, 300);
+      } else {
+        // Check if current stroke is complete enough to advance
+        const activeStrokePoints = activeStroke.points.length;
+        const activeStrokeCovered = Array.from(next).filter(
+          key => key.startsWith(`${activeStrokeIndex}-`)
+        ).length;
+        const strokeProgress = activeStrokeCovered / activeStrokePoints;
+
+        if (strokeProgress >= 0.60 && activeStrokeIndex < letter.strokes.length - 1) {
+          // Advance to next stroke
+          setActiveStrokeIndex(activeStrokeIndex + 1);
+        }
       }
+
+      return next;
     });
-
-    setCoveredPoints(newCoveredPoints);
-
-    // Calculate progress
-    const totalPoints = letter.strokes.reduce((sum, stroke) => sum + stroke.points.length, 0);
-    const calculatedProgress = newCoveredPoints.size / totalPoints;
-    setProgress(calculatedProgress);
-
-    // Check if letter is complete
-    if (calculatedProgress >= LETTER_COMPLETION_THRESHOLD && !isCompleted) {
-      setIsCompleted(true);
-      setTimeout(() => {
-        onLetterComplete();
-      }, 300);
-    } else {
-      // Check if current stroke is complete enough to advance
-      const activeStrokePoints = activeStroke.points.length;
-      const activeStrokeCovered = Array.from(newCoveredPoints).filter(
-        key => key.startsWith(`${activeStrokeIndex}-`)
-      ).length;
-      const strokeProgress = activeStrokeCovered / activeStrokePoints;
-
-      if (strokeProgress >= 0.60 && activeStrokeIndex < letter.strokes.length - 1) {
-        // Advance to next stroke
-        setActiveStrokeIndex(activeStrokeIndex + 1);
-      }
-    }
   };
 
   const panResponder = useRef(
