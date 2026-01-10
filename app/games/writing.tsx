@@ -181,6 +181,7 @@ export default function WritingGame() {
         </View>
 
         <TracingCanvas
+          key={`trace-${currentLetter.letter}-${currentLetterIndex}`}
           letter={currentLetter}
           onLetterComplete={handleLetterComplete}
           onProgressUpdate={handleProgressUpdate}
