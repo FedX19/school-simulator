@@ -5,12 +5,15 @@ import type { LetterDefinition, Point } from '@/data/letters';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CANVAS_SIZE = Math.min(screenWidth - 40, 400);
-const COVERAGE_RADIUS = 70; // Day 1 Easy Mode: very forgiving hit detection
-const LETTER_COMPLETION_THRESHOLD = 0.30; // Day 1 Easy Mode: 30% to complete
-const STROKE_ADVANCE_THRESHOLD = 0.20; // Day 1 Easy Mode: 20% to advance stroke
+const COVERAGE_RADIUS = 70; // Forgiving hit detection
+const WHOLE_LETTER_THRESHOLD = 0.65; // 65% overall coverage required
+const PER_STROKE_THRESHOLD = 0.45; // 45% coverage per stroke required
+const STROKE_ADVANCE_THRESHOLD = 0.20; // 20% to advance visual hint
 const INTERPOLATION_STEP = 8; // Generate intermediate points every ~8px
+const AUTO_COMPLETE_MIN_PROGRESS = 0.60; // Auto-complete requires at least 60% progress
 const AUTO_COMPLETE_DISTANCE = 2500; // Auto-complete if drawn this much distance
 const AUTO_COMPLETE_TIME = 3000; // Auto-complete after 3 seconds of effort (ms)
+const ERROR_DISPLAY_TIME = 800; // Show error feedback for 800ms
 
 interface TracingCanvasProps {
   letter: LetterDefinition;
@@ -33,8 +36,10 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
   const [isCompleted, setIsCompleted] = useState(false);
   const [progress, setProgress] = useState(0);
   const rafIdRef = useRef<number | null>(null);
+  const [showError, setShowError] = useState(false);
+  const errorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Day 1 Easy Mode: track effort for auto-complete
+  // Track effort for auto-complete
   const [totalDrawnDistance, setTotalDrawnDistance] = useState(0);
   const [firstDrawTime, setFirstDrawTime] = useState<number | null>(null);
 
@@ -72,14 +77,17 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
     return points;
   };
 
-  // Day 1 Easy Mode: Check if effort-based auto-complete should trigger
-  const checkAutoComplete = () => {
+  // Check if effort-based auto-complete should trigger (gated by progress)
+  const checkAutoComplete = (currentProgress: number) => {
     if (isCompleted) return false;
+
+    // Auto-complete requires at least 60% progress
+    if (currentProgress < AUTO_COMPLETE_MIN_PROGRESS) return false;
 
     const now = Date.now();
     const timeSpent = firstDrawTime ? now - firstDrawTime : 0;
 
-    // Auto-complete if sufficient effort shown
+    // Auto-complete if sufficient effort shown AND progress >= 60%
     if (totalDrawnDistance > AUTO_COMPLETE_DISTANCE ||
         (timeSpent > AUTO_COMPLETE_TIME && totalDrawnDistance > 100)) {
       return true;
@@ -113,15 +121,28 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
       const calculatedProgress = next.size / totalPoints;
       setProgress(calculatedProgress);
 
-      // Check if letter is complete (either by progress or auto-complete)
-      const shouldAutoComplete = checkAutoComplete();
-      if ((calculatedProgress >= LETTER_COMPLETION_THRESHOLD || shouldAutoComplete) && !isCompleted) {
+      // Check per-stroke coverage
+      const perStrokeProgress = letter.strokes.map((stroke, strokeIndex) => {
+        const strokePoints = stroke.points.length;
+        const strokeCovered = Array.from(next).filter(
+          key => key.startsWith(`${strokeIndex}-`)
+        ).length;
+        return strokeCovered / strokePoints;
+      });
+
+      const allStrokesMeetThreshold = perStrokeProgress.every(p => p >= PER_STROKE_THRESHOLD);
+
+      // Check if letter is complete (whole letter requirement)
+      const shouldAutoComplete = checkAutoComplete(calculatedProgress);
+      const wholeLetterComplete = calculatedProgress >= WHOLE_LETTER_THRESHOLD && allStrokesMeetThreshold;
+
+      if ((wholeLetterComplete || shouldAutoComplete) && !isCompleted) {
         setIsCompleted(true);
         setTimeout(() => {
           onLetterComplete();
         }, 300);
       } else {
-        // Day 1 Easy Mode: Still advance visual hint stroke, but with easier threshold
+        // Still advance visual hint stroke
         const activeStroke = letter.strokes[activeStrokeIndex];
         if (activeStroke) {
           const activeStrokePoints = activeStroke.points.length;
@@ -187,6 +208,17 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
         if (currentStroke.length > 0) {
           setUserStrokes((prev) => [...prev, currentStroke]);
           setCurrentStroke([]);
+
+          // Show error feedback if user drew but didn't complete the letter
+          if (!isCompleted && totalDrawnDistance > 200) {
+            setShowError(true);
+            if (errorTimeoutRef.current) {
+              clearTimeout(errorTimeoutRef.current);
+            }
+            errorTimeoutRef.current = setTimeout(() => {
+              setShowError(false);
+            }, ERROR_DISPLAY_TIME);
+          }
         }
       },
       onPanResponderTerminate: () => {
@@ -194,6 +226,17 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
         if (currentStroke.length > 0) {
           setUserStrokes((prev) => [...prev, currentStroke]);
           setCurrentStroke([]);
+
+          // Show error feedback if user drew but didn't complete the letter
+          if (!isCompleted && totalDrawnDistance > 200) {
+            setShowError(true);
+            if (errorTimeoutRef.current) {
+              clearTimeout(errorTimeoutRef.current);
+            }
+            errorTimeoutRef.current = setTimeout(() => {
+              setShowError(false);
+            }, ERROR_DISPLAY_TIME);
+          }
         }
       },
     })
@@ -228,6 +271,12 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
       rafIdRef.current = null;
     }
 
+    // Cancel any pending error timeout
+    if (errorTimeoutRef.current) {
+      clearTimeout(errorTimeoutRef.current);
+      errorTimeoutRef.current = null;
+    }
+
     // Reset all state to initial values
     setUserStrokes([]);
     setCurrentStroke([]);
@@ -237,6 +286,7 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
     setProgress(0);
     setTotalDrawnDistance(0);
     setFirstDrawTime(null);
+    setShowError(false);
   }, [letter]);
 
   // Convert stroke points to SVG path
@@ -300,7 +350,7 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
   };
 
   return (
-    <View style={styles.container} {...panResponder.panHandlers}>
+    <View style={[styles.container, showError && styles.containerError]} {...panResponder.panHandlers}>
       <Svg width={CANVAS_SIZE} height={CANVAS_SIZE} style={styles.svg}>
         {/* Guide strokes */}
         {letter.strokes.map((stroke, idx) => renderGuideStroke(stroke.points, idx))}
@@ -349,6 +399,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 5,
+  },
+  containerError: {
+    borderWidth: 4,
+    borderColor: '#FF5722',
   },
   svg: {
     backgroundColor: '#FFF',
