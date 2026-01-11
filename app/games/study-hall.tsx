@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useProgress } from '@/contexts/progress-context';
+import { shuffleArray } from '@/utils/shuffle';
 
 interface QuizQuestion {
   subject: string;
@@ -39,11 +40,25 @@ export default function StudyHallGame() {
   const [score, setScore] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
   const [showResults, setShowResults] = useState(false);
+  const [shuffledQuiz, setShuffledQuiz] = useState<QuizQuestion[]>([]);
 
   const totalQuestions = 12;
-  const question = QUIZ[currentQuestion];
+  const question = shuffledQuiz[currentQuestion];
 
   const startGame = () => {
+    // Shuffle question order
+    const shuffledQuestions = shuffleArray(QUIZ).slice(0, totalQuestions);
+
+    // Shuffle options for each question
+    const questionsWithShuffledOptions = shuffledQuestions.map(q => ({
+      ...q,
+      options: shuffleArray(q.options),
+    }));
+
+    setShuffledQuiz(questionsWithShuffledOptions);
+    setCurrentQuestion(0);
+    setScore(0);
+    setShowResults(false);
     setShowIntro(false);
   };
 
@@ -93,6 +108,16 @@ export default function StudyHallGame() {
             onPress={handleComplete}>
             <Text style={styles.completeButtonText}>Complete Study Hall ✓</Text>
           </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  if (!question) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.gameArea}>
+          <Text>Loading...</Text>
         </View>
       </View>
     );
