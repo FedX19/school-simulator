@@ -10,7 +10,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useProgress } from '@/contexts/progress-context';
 import { shuffleArray } from '@/utils/shuffle';
-import { Audio } from 'expo-av';
+import * as Speech from 'expo-speech';
 
 const { width } = Dimensions.get('window');
 
@@ -24,10 +24,8 @@ interface Helper {
 
 interface Question {
   id: string;
-  audioPrompt: string; // Text description of audio (for now, will be audio file path later)
+  audioPrompt: string; // Text prompt to be spoken using text-to-speech
   correctHelper: Helper;
-  // Placeholder for actual audio file path
-  audioPath?: string;
 }
 
 // Community Helpers pool
@@ -86,20 +84,17 @@ export default function SocialStudiesGame() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [showFeedback, setShowFeedback] = useState<'correct' | 'incorrect' | null>(null);
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
 
   const feedbackScale = useState(new Animated.Value(1))[0];
 
-  // Cleanup audio on unmount
+  // Cleanup speech on unmount
   useEffect(() => {
     return () => {
-      if (sound) {
-        sound.unloadAsync();
-      }
+      Speech.stop();
     };
-  }, [sound]);
+  }, []);
 
-  // Auto-play audio prompt when question changes
+  // Auto-play speech prompt when question changes
   useEffect(() => {
     if (!showIntro && !showResults && gameQuestions.length > 0) {
       playAudioPrompt();
@@ -107,14 +102,17 @@ export default function SocialStudiesGame() {
   }, [currentQuestionIndex, showIntro, showResults]);
 
   const playAudioPrompt = async () => {
-    // Placeholder: In production, this would load and play actual audio file
-    // For now, we'll just show the text prompt in the UI
-    // Example with actual audio file:
-    // const { sound } = await Audio.Sound.createAsync(
-    //   require(`@/assets/audio/${gameQuestions[currentQuestionIndex].question.audioPath}`)
-    // );
-    // await sound.playAsync();
-    // setSound(sound);
+    // Stop any currently playing speech
+    await Speech.stop();
+
+    // Speak the question prompt using text-to-speech
+    if (gameQuestions.length > 0 && gameQuestions[currentQuestionIndex]) {
+      Speech.speak(gameQuestions[currentQuestionIndex].question.audioPrompt, {
+        language: 'en-US',
+        pitch: 1.0,
+        rate: 0.9, // Slightly slower for kindergarten students
+      });
+    }
   };
 
   const startGame = () => {
@@ -165,6 +163,7 @@ export default function SocialStudiesGame() {
 
       // Move to next question after delay
       setTimeout(() => {
+        Speech.stop(); // Stop current speech before moving to next question
         setShowFeedback(null);
         if (currentQuestionIndex + 1 >= QUESTIONS_PER_GAME) {
           setShowResults(true);
