@@ -6,21 +6,23 @@ import type { LetterDefinition, Point } from '@/data/letters';
 const { width: screenWidth } = Dimensions.get('window');
 const CANVAS_SIZE = Math.min(screenWidth - 40, 400);
 const COVERAGE_RADIUS = 70; // Forgiving hit detection
-const WHOLE_LETTER_THRESHOLD = 0.65; // 65% overall coverage required
-const PER_STROKE_THRESHOLD = 0.45; // 45% coverage per stroke required
-const STROKE_ADVANCE_THRESHOLD = 0.20; // 20% to advance visual hint
+const WHOLE_LETTER_THRESHOLD = 0.65; // 65% overall coverage required (easy mode)
+const PER_STROKE_THRESHOLD = 0.45; // 45% coverage per stroke required (easy mode)
+const STROKE_ADVANCE_THRESHOLD = 0.20; // 20% to advance visual hint (easy mode)
+const START_RADIUS = 80; // How close first touch must be to stroke start (teach mode)
 const INTERPOLATION_STEP = 8; // Generate intermediate points every ~8px
-const AUTO_COMPLETE_MIN_PROGRESS = 0.60; // Auto-complete requires at least 60% progress
-const AUTO_COMPLETE_DISTANCE = 2500; // Auto-complete if drawn this much distance
-const AUTO_COMPLETE_TIME = 3000; // Auto-complete after 3 seconds of effort (ms)
+const AUTO_COMPLETE_MIN_PROGRESS = 0.60; // Auto-complete requires at least 60% progress (easy mode)
+const AUTO_COMPLETE_DISTANCE = 2500; // Auto-complete if drawn this much distance (easy mode)
+const AUTO_COMPLETE_TIME = 3000; // Auto-complete after 3 seconds of effort (easy mode)
 const ERROR_DISPLAY_TIME = 800; // Show error feedback for 800ms
 
 interface TracingCanvasProps {
   letter: LetterDefinition;
-  onLetterComplete: () => void;
+  onLetterComplete: (payload: { userStrokes: { x: number; y: number }[][] }) => void;
   onProgressUpdate: (progress: number) => void;
   onTraceStart?: () => void;
   onTraceEnd?: () => void;
+  mode?: 'easy' | 'teach';
 }
 
 interface UserStrokePoint {
@@ -28,7 +30,7 @@ interface UserStrokePoint {
   y: number;
 }
 
-export default function TracingCanvas({ letter, onLetterComplete, onProgressUpdate, onTraceStart, onTraceEnd }: TracingCanvasProps) {
+export default function TracingCanvas({ letter, onLetterComplete, onProgressUpdate, onTraceStart, onTraceEnd, mode = 'teach' }: TracingCanvasProps) {
   const [userStrokes, setUserStrokes] = useState<UserStrokePoint[][]>([]);
   const [currentStroke, setCurrentStroke] = useState<UserStrokePoint[]>([]);
   const [activeStrokeIndex, setActiveStrokeIndex] = useState(0);
@@ -39,9 +41,13 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
   const [showError, setShowError] = useState(false);
   const errorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Track effort for auto-complete
+  // Track effort for auto-complete (easy mode)
   const [totalDrawnDistance, setTotalDrawnDistance] = useState(0);
   const [firstDrawTime, setFirstDrawTime] = useState<number | null>(null);
+
+  // Teaching mode: track monotonic progress through active stroke
+  const [maxStrokeIndex, setMaxStrokeIndex] = useState(0); // Furthest point reached on active stroke
+  const [strokeStarted, setStrokeStarted] = useState(false); // Whether user started at correct position
 
   // Scale letter coordinates to canvas size
   const scalePoint = (p: Point): Point => ({
@@ -98,68 +104,127 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
 
   // Check which target points are covered by user strokes
   const checkCoverage = (userPoint: UserStrokePoint) => {
-    // Use functional update to avoid stale state in tight loops
-    setCoveredPoints(prev => {
-      const next = new Set(prev);
+    if (mode === 'teach') {
+      // Teaching mode: strict stroke order and progression
+      if (!strokeStarted) return; // Ignore if stroke hasn't started properly
 
-      // Day 1 Easy Mode: Check ALL strokes, not just active
-      // This removes strict stroke-order enforcement
-      letter.strokes.forEach((stroke, strokeIndex) => {
-        stroke.points.forEach((targetPoint, idx) => {
-          const scaledTarget = scalePoint(targetPoint);
-          const dist = distance(scaledTarget, userPoint);
+      const activeStroke = letter.strokes[activeStrokeIndex];
+      if (!activeStroke) return;
 
-          if (dist < COVERAGE_RADIUS) {
-            const key = `${strokeIndex}-${idx}`;
-            next.add(key);
-          }
-        });
+      // Find nearest point on active stroke
+      let nearestIndex = -1;
+      let nearestDist = Infinity;
+
+      activeStroke.points.forEach((targetPoint, idx) => {
+        const scaledTarget = scalePoint(targetPoint);
+        const dist = distance(scaledTarget, userPoint);
+
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearestIndex = idx;
+        }
       });
 
-      // Calculate progress from the fresh 'next' set
-      const totalPoints = letter.strokes.reduce((sum, stroke) => sum + stroke.points.length, 0);
-      const calculatedProgress = next.size / totalPoints;
-      setProgress(calculatedProgress);
+      // Only count if within coverage radius
+      if (nearestDist < COVERAGE_RADIUS && nearestIndex >= 0) {
+        // Update maxIndex monotonically (allow small backtrack)
+        setMaxStrokeIndex(prev => Math.max(prev, nearestIndex - 5)); // Allow 5-point backtrack
 
-      // Check per-stroke coverage
-      const perStrokeProgress = letter.strokes.map((stroke, strokeIndex) => {
-        const strokePoints = stroke.points.length;
-        const strokeCovered = Array.from(next).filter(
-          key => key.startsWith(`${strokeIndex}-`)
-        ).length;
-        return strokeCovered / strokePoints;
-      });
+        // Calculate stroke progress based on maxIndex
+        const strokeProgress = Math.max(0, maxStrokeIndex) / (activeStroke.points.length - 1);
+        setProgress(strokeProgress);
 
-      const allStrokesMeetThreshold = perStrokeProgress.every(p => p >= PER_STROKE_THRESHOLD);
-
-      // Check if letter is complete (whole letter requirement)
-      const shouldAutoComplete = checkAutoComplete(calculatedProgress);
-      const wholeLetterComplete = calculatedProgress >= WHOLE_LETTER_THRESHOLD && allStrokesMeetThreshold;
-
-      if ((wholeLetterComplete || shouldAutoComplete) && !isCompleted) {
-        setIsCompleted(true);
-        setTimeout(() => {
-          onLetterComplete();
-        }, 300);
-      } else {
-        // Still advance visual hint stroke
-        const activeStroke = letter.strokes[activeStrokeIndex];
-        if (activeStroke) {
-          const activeStrokePoints = activeStroke.points.length;
-          const activeStrokeCovered = Array.from(next).filter(
-            key => key.startsWith(`${activeStrokeIndex}-`)
-          ).length;
-          const strokeProgress = activeStrokeCovered / activeStrokePoints;
-
-          if (strokeProgress >= STROKE_ADVANCE_THRESHOLD && activeStrokeIndex < letter.strokes.length - 1) {
-            // Advance to next stroke hint
-            setActiveStrokeIndex(activeStrokeIndex + 1);
+        // Check if stroke is complete (100% completion - must reach the end)
+        if (maxStrokeIndex >= activeStroke.points.length - 1 && !isCompleted) {
+          if (activeStrokeIndex >= letter.strokes.length - 1) {
+            // Last stroke completed - letter done
+            setIsCompleted(true);
+            setTimeout(() => {
+              // Pass all user strokes to the callback
+              setUserStrokes(prev => {
+                const finalStrokes = currentStroke.length > 0 ? [...prev, currentStroke] : prev;
+                onLetterComplete({ userStrokes: finalStrokes });
+                return finalStrokes;
+              });
+            }, 300);
+          } else {
+            // Advance to next stroke
+            setTimeout(() => {
+              setActiveStrokeIndex(prev => prev + 1);
+              setMaxStrokeIndex(0);
+              setStrokeStarted(false);
+              setProgress(0);
+            }, 200);
           }
         }
       }
+    } else {
+      // Easy mode: original logic with all strokes
+      setCoveredPoints(prev => {
+        const next = new Set(prev);
 
-      return next;
-    });
+        letter.strokes.forEach((stroke, strokeIndex) => {
+          stroke.points.forEach((targetPoint, idx) => {
+            const scaledTarget = scalePoint(targetPoint);
+            const dist = distance(scaledTarget, userPoint);
+
+            if (dist < COVERAGE_RADIUS) {
+              const key = `${strokeIndex}-${idx}`;
+              next.add(key);
+            }
+          });
+        });
+
+        // Calculate progress from the fresh 'next' set
+        const totalPoints = letter.strokes.reduce((sum, stroke) => sum + stroke.points.length, 0);
+        const calculatedProgress = next.size / totalPoints;
+        setProgress(calculatedProgress);
+
+        // Check per-stroke coverage
+        const perStrokeProgress = letter.strokes.map((stroke, strokeIndex) => {
+          const strokePoints = stroke.points.length;
+          const strokeCovered = Array.from(next).filter(
+            key => key.startsWith(`${strokeIndex}-`)
+          ).length;
+          return strokeCovered / strokePoints;
+        });
+
+        const allStrokesMeetThreshold = perStrokeProgress.every(p => p >= PER_STROKE_THRESHOLD);
+
+        // Check if letter is complete (whole letter requirement)
+        const shouldAutoComplete = checkAutoComplete(calculatedProgress);
+        const wholeLetterComplete = calculatedProgress >= WHOLE_LETTER_THRESHOLD && allStrokesMeetThreshold;
+
+        if ((wholeLetterComplete || shouldAutoComplete) && !isCompleted) {
+          setIsCompleted(true);
+          setTimeout(() => {
+            // Pass all user strokes to the callback
+            setUserStrokes(prev => {
+              const finalStrokes = currentStroke.length > 0 ? [...prev, currentStroke] : prev;
+              onLetterComplete({ userStrokes: finalStrokes });
+              return finalStrokes;
+            });
+          }, 300);
+        } else {
+          // Still advance visual hint stroke
+          const activeStroke = letter.strokes[activeStrokeIndex];
+          if (activeStroke) {
+            const activeStrokePoints = activeStroke.points.length;
+            const activeStrokeCovered = Array.from(next).filter(
+              key => key.startsWith(`${activeStrokeIndex}-`)
+            ).length;
+            const strokeProgress = activeStrokeCovered / activeStrokePoints;
+
+            if (strokeProgress >= STROKE_ADVANCE_THRESHOLD && activeStrokeIndex < letter.strokes.length - 1) {
+              // Advance to next stroke hint
+              setActiveStrokeIndex(activeStrokeIndex + 1);
+            }
+          }
+        }
+
+        return next;
+      });
+    }
   };
 
   const panResponder = useRef(
@@ -169,14 +234,39 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
       onPanResponderTerminationRequest: () => false,
       onPanResponderGrant: (evt) => {
         onTraceStart?.();
-        // Day 1 Easy Mode: Start tracking time on first draw
-        if (firstDrawTime === null) {
-          setFirstDrawTime(Date.now());
-        }
         const { locationX, locationY } = evt.nativeEvent;
         const point = { x: locationX, y: locationY };
-        setCurrentStroke([point]);
-        checkCoverage(point);
+
+        if (mode === 'teach') {
+          // Teaching mode: check if starting near stroke start
+          const activeStroke = letter.strokes[activeStrokeIndex];
+          if (activeStroke && activeStroke.points.length > 0) {
+            const startPoint = scalePoint(activeStroke.points[0]);
+            const distToStart = distance(startPoint, point);
+
+            if (distToStart < START_RADIUS) {
+              setStrokeStarted(true);
+              setCurrentStroke([point]);
+              checkCoverage(point);
+            } else {
+              // Show error feedback if starting too far from stroke start
+              setShowError(true);
+              if (errorTimeoutRef.current) {
+                clearTimeout(errorTimeoutRef.current);
+              }
+              errorTimeoutRef.current = setTimeout(() => {
+                setShowError(false);
+              }, ERROR_DISPLAY_TIME);
+            }
+          }
+        } else {
+          // Easy mode: start tracking time on first draw
+          if (firstDrawTime === null) {
+            setFirstDrawTime(Date.now());
+          }
+          setCurrentStroke([point]);
+          checkCoverage(point);
+        }
       },
       onPanResponderMove: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
@@ -188,9 +278,11 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
             const lastPoint = prev[prev.length - 1];
             const interpolated = interpolatePoints(lastPoint, point);
 
-            // Day 1 Easy Mode: Track drawn distance
-            const segmentDistance = distance(lastPoint, point);
-            setTotalDrawnDistance(d => d + segmentDistance);
+            // Easy mode only: Track drawn distance for auto-complete
+            if (mode === 'easy') {
+              const segmentDistance = distance(lastPoint, point);
+              setTotalDrawnDistance(d => d + segmentDistance);
+            }
 
             // Check coverage for all interpolated points
             interpolated.forEach(p => checkCoverage(p));
@@ -209,8 +301,8 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
           setUserStrokes((prev) => [...prev, currentStroke]);
           setCurrentStroke([]);
 
-          // Show error feedback if user drew but didn't complete the letter
-          if (!isCompleted && totalDrawnDistance > 200) {
+          // Easy mode only: Show error feedback if user drew but didn't complete
+          if (mode === 'easy' && !isCompleted && totalDrawnDistance > 200) {
             setShowError(true);
             if (errorTimeoutRef.current) {
               clearTimeout(errorTimeoutRef.current);
@@ -227,8 +319,8 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
           setUserStrokes((prev) => [...prev, currentStroke]);
           setCurrentStroke([]);
 
-          // Show error feedback if user drew but didn't complete the letter
-          if (!isCompleted && totalDrawnDistance > 200) {
+          // Easy mode only: Show error feedback if user drew but didn't complete
+          if (mode === 'easy' && !isCompleted && totalDrawnDistance > 200) {
             setShowError(true);
             if (errorTimeoutRef.current) {
               clearTimeout(errorTimeoutRef.current);
@@ -287,6 +379,8 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
     setTotalDrawnDistance(0);
     setFirstDrawTime(null);
     setShowError(false);
+    setMaxStrokeIndex(0);
+    setStrokeStarted(false);
   }, [letter]);
 
   // Convert stroke points to SVG path

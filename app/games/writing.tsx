@@ -5,7 +5,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Dimensions,
 } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { useProgress } from '@/contexts/progress-context';
 import TracingCanvas from '@/components/tracing/TracingCanvas';
@@ -13,6 +15,9 @@ import { LETTER_DEFINITIONS, shuffleArray, type LetterDefinition } from '@/data/
 
 const LETTERS_PER_GAME = 10;
 const PASS_THRESHOLD = 0.8; // 80% (8/10 letters)
+
+const { width: screenWidth } = Dimensions.get('window');
+const CANVAS_SIZE = Math.min(screenWidth - 40, 400);
 
 export default function WritingGame() {
   const router = useRouter();
@@ -25,6 +30,7 @@ export default function WritingGame() {
   const [lettersPassed, setLettersPassed] = useState<boolean[]>([]);
   const [currentProgress, setCurrentProgress] = useState(0);
   const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [completedDrawing, setCompletedDrawing] = useState<{ x: number; y: number }[][] | null>(null);
 
   const startGame = () => {
     // Randomize letter order
@@ -34,30 +40,38 @@ export default function WritingGame() {
     setCurrentLetterIndex(0);
     setLettersPassed([]);
     setCurrentProgress(0);
+    setCompletedDrawing(null);
     setShowIntro(false);
     setShowResults(false);
   };
 
-  const handleLetterComplete = () => {
+  const handleLetterComplete = (payload: { userStrokes: { x: number; y: number }[][] }) => {
+    // Save the completed drawing to show preview
+    setCompletedDrawing(payload.userStrokes);
+
     // Mark current letter as passed
     const newPassed = [...lettersPassed];
     newPassed[currentLetterIndex] = true;
     setLettersPassed(newPassed);
+  };
+
+  const handleNextLetter = () => {
+    // Clear the preview
+    setCompletedDrawing(null);
 
     // Move to next letter or show results
     if (currentLetterIndex + 1 >= LETTERS_PER_GAME) {
-      setTimeout(() => {
-        setShowResults(true);
-      }, 500);
+      setShowResults(true);
     } else {
-      setTimeout(() => {
-        setCurrentLetterIndex(currentLetterIndex + 1);
-        setCurrentProgress(0);
-      }, 500);
+      setCurrentLetterIndex(currentLetterIndex + 1);
+      setCurrentProgress(0);
     }
   };
 
   const handleSkipLetter = () => {
+    // Clear any completed drawing
+    setCompletedDrawing(null);
+
     // Mark current letter as NOT passed
     const newPassed = [...lettersPassed];
     newPassed[currentLetterIndex] = false;
@@ -98,6 +112,16 @@ export default function WritingGame() {
     startGame();
   };
 
+  // Convert stroke points to SVG path
+  const strokeToPath = (stroke: { x: number; y: number }[]): string => {
+    if (stroke.length === 0) return '';
+    let path = `M ${stroke[0].x} ${stroke[0].y}`;
+    for (let i = 1; i < stroke.length; i++) {
+      path += ` L ${stroke[i].x} ${stroke[i].y}`;
+    }
+    return path;
+  };
+
   if (showIntro) {
     return (
       <View style={styles.container}>
@@ -110,6 +134,44 @@ export default function WritingGame() {
             <Text style={styles.startButtonText}>Start Game</Text>
           </TouchableOpacity>
         </ScrollView>
+      </View>
+    );
+  }
+
+  // Show preview screen after letter completion
+  if (completedDrawing && gameLetters.length > 0) {
+    const currentLetter = gameLetters[currentLetterIndex];
+    return (
+      <View style={styles.container}>
+        <View style={styles.previewHeader}>
+          <Text style={styles.previewTitle}>Great Job! ✨</Text>
+          <Text style={styles.previewSubtitle}>You traced the letter {currentLetter.letter}!</Text>
+        </View>
+
+        <View style={styles.previewArea}>
+          <Text style={styles.previewLabel}>Your Letter:</Text>
+          <View style={styles.previewCanvas}>
+            <Svg width={CANVAS_SIZE} height={CANVAS_SIZE}>
+              {completedDrawing.map((stroke, idx) => (
+                <Path
+                  key={`preview-${idx}`}
+                  d={strokeToPath(stroke)}
+                  stroke="#2196F3"
+                  strokeWidth={6}
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              ))}
+            </Svg>
+          </View>
+
+          <TouchableOpacity style={styles.nextLetterButton} onPress={handleNextLetter}>
+            <Text style={styles.nextLetterButtonText}>
+              {currentLetterIndex + 1 >= LETTERS_PER_GAME ? 'See Results →' : 'Next Letter →'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -182,6 +244,7 @@ export default function WritingGame() {
 
         <TracingCanvas
           key={`trace-${currentLetter.letter}-${currentLetterIndex}`}
+          mode="teach"
           letter={currentLetter}
           onLetterComplete={handleLetterComplete}
           onProgressUpdate={handleProgressUpdate}
@@ -384,5 +447,61 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#333',
     textAlign: 'center',
+  },
+  previewHeader: {
+    backgroundColor: '#4CAF50',
+    padding: 25,
+    alignItems: 'center',
+  },
+  previewTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFF',
+    marginBottom: 8,
+  },
+  previewSubtitle: {
+    fontSize: 22,
+    color: '#FFF',
+  },
+  previewArea: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  previewLabel: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
+  previewCanvas: {
+    width: CANVAS_SIZE,
+    height: CANVAS_SIZE,
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+    marginBottom: 30,
+  },
+  nextLetterButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 40,
+    paddingVertical: 20,
+    borderRadius: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  nextLetterButtonText: {
+    color: '#FFF',
+    fontSize: 24,
+    fontWeight: 'bold',
   },
 });

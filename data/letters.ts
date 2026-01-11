@@ -41,7 +41,7 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
     ],
   },
 
-  // B: 2 strokes (vertical line, two humps as one stroke)
+  // B: 3 strokes (vertical line, top bump, bottom bump)
   {
     letter: 'B',
     strokes: [
@@ -51,11 +51,13 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
         ...createLinePoints(0.6, 0.1, 0.7, 0.3, 25),
         ...createLinePoints(0.7, 0.3, 0.6, 0.5, 25),
         ...createLinePoints(0.6, 0.5, 0.2, 0.5, 30),
+      ] }, // Top bump
+      { points: [
         ...createLinePoints(0.2, 0.5, 0.7, 0.5, 30),
         ...createLinePoints(0.7, 0.5, 0.8, 0.7, 25),
         ...createLinePoints(0.8, 0.7, 0.7, 0.9, 25),
         ...createLinePoints(0.7, 0.9, 0.2, 0.9, 30),
-      ] },
+      ] }, // Bottom bump
     ],
   },
 
