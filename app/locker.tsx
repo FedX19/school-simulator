@@ -51,59 +51,76 @@ export default function Locker() {
   return (
     <View style={styles.container}>
       <View style={styles.lockerFrame}>
-        <View style={styles.lockerHeader}>
-          <Text style={styles.headerText}>MY KINDERGARTEN DAY</Text>
+        {/* Locker Door Frame */}
+        <View style={styles.lockerDoorFrame}>
+          <View style={styles.lockerVentSlot} />
+          <View style={styles.lockerVentSlot} />
+          <View style={styles.lockerVentSlot} />
         </View>
 
-        <ScrollView
-          style={styles.bookshelf}
-          contentContainerStyle={styles.bookshelfContent}>
-
-          {/* Progress Header */}
-          <View style={styles.progressHeader}>
+        {/* Locker Interior */}
+        <View style={styles.lockerInterior}>
+          {/* Top Shelf - Progress Display */}
+          <View style={styles.topShelf}>
+            <Text style={styles.shelfLabel}>MY KINDERGARTEN DAY</Text>
             <Text style={styles.progressText}>
               {completedCount} of 13 Complete
             </Text>
             {allComplete && (
-              <Text style={styles.allDoneText}>🎉 All Done! Pick Your Sticker! 🎉</Text>
+              <Text style={styles.allDoneText}>🎉 All Done! 🎉</Text>
             )}
           </View>
 
-          {/* Books Grid */}
-          <View style={styles.booksGrid}>
+          {/* Books Stacked Vertically */}
+          <ScrollView
+            style={styles.bookStack}
+            contentContainerStyle={styles.bookStackContent}
+            showsVerticalScrollIndicator={false}>
+
             {BOOKS.map((book) => {
               const isCompleted = todayCompleted.includes(book.subject);
 
               return (
                 <TouchableOpacity
                   key={book.subject}
-                  activeOpacity={0.7}
+                  activeOpacity={0.8}
                   onPress={() => handleBookPress(book)}
-                  style={styles.bookContainer}>
-                  <View style={[styles.book, { backgroundColor: book.color }]}>
-                    <Text style={styles.bookIcon}>{book.icon}</Text>
-                    <Text style={styles.bookTitle}>{book.title}</Text>
+                  style={styles.bookSpineContainer}>
+
+                  {/* Book Spine (vertical book) */}
+                  <View style={[styles.bookSpine, { backgroundColor: book.color }]}>
+                    <Text style={styles.bookSpineIcon}>{book.icon}</Text>
+                    <Text style={styles.bookSpineTitle}>{book.title}</Text>
 
                     {/* Checkmark if completed */}
                     {isCompleted && (
-                      <View style={styles.checkmark}>
+                      <View style={styles.spineCheckmark}>
                         <Text style={styles.checkmarkText}>✓</Text>
                       </View>
                     )}
                   </View>
+
+                  {/* Book top edge (3D effect) */}
+                  <View style={[styles.bookTop, { backgroundColor: book.color, opacity: 0.8 }]} />
                 </TouchableOpacity>
               );
             })}
-          </View>
 
-          {/* Day Complete Sticker */}
-          {progress.dayCompleted && progress.sticker && (
-            <View style={styles.dayStickerContainer}>
-              <Text style={styles.dayStickerTitle}>Today's Sticker:</Text>
-              <Text style={styles.daySticker}>{progress.sticker}</Text>
-            </View>
-          )}
-        </ScrollView>
+            {/* Day Complete Sticker - on locker shelf */}
+            {progress.dayCompleted && progress.sticker && (
+              <View style={styles.stickerShelf}>
+                <Text style={styles.stickerLabel}>Today's Sticker:</Text>
+                <Text style={styles.daySticker}>{progress.sticker}</Text>
+              </View>
+            )}
+          </ScrollView>
+
+          {/* Locker Hook */}
+          <View style={styles.lockerHook}>
+            <View style={styles.hookBase} />
+            <View style={styles.hookCurve} />
+          </View>
+        </View>
 
         {/* Back button */}
         <TouchableOpacity
@@ -119,141 +136,197 @@ export default function Locker() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFE5B4',
-    padding: 20,
+    backgroundColor: '#E8E8E8',
+    padding: 15,
     justifyContent: 'center',
     alignItems: 'center',
   },
   lockerFrame: {
-    width: Math.min(width * 0.9, 700),
-    height: height * 0.9,
-    backgroundColor: '#B8860B',
-    borderRadius: 15,
-    padding: 5,
+    width: Math.min(width * 0.95, 500),
+    height: height * 0.92,
+    backgroundColor: '#4A5568',
+    borderRadius: 12,
+    padding: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 12,
+    borderWidth: 3,
+    borderColor: '#2D3748',
   },
-  lockerHeader: {
-    backgroundColor: '#8B4513',
-    padding: 15,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
+  lockerDoorFrame: {
+    backgroundColor: '#718096',
+    padding: 8,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 15,
   },
-  headerText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#FFD700',
-    letterSpacing: 1,
+  lockerVentSlot: {
+    width: 50,
+    height: 4,
+    backgroundColor: '#2D3748',
+    borderRadius: 2,
   },
-  bookshelf: {
+  lockerInterior: {
     flex: 1,
-    backgroundColor: '#D2691E',
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
+    backgroundColor: '#E2E8F0',
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    position: 'relative',
   },
-  bookshelfContent: {
-    padding: 15,
-  },
-  progressHeader: {
-    backgroundColor: '#FFF',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
+  topShelf: {
+    backgroundColor: '#CBD5E0',
+    padding: 12,
+    borderBottomWidth: 3,
+    borderBottomColor: '#A0AEC0',
     alignItems: 'center',
   },
-  progressText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#8B4513',
-  },
-  allDoneText: {
+  shelfLabel: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#4CAF50',
-    marginTop: 10,
-  },
-  booksGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
-    gap: 10,
-  },
-  bookContainer: {
-    width: '30%',
-    marginBottom: 15,
-  },
-  book: {
-    aspectRatio: 0.7,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 2, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 6,
-    borderWidth: 3,
-    borderColor: '#FFF',
-    padding: 5,
-  },
-  bookIcon: {
-    fontSize: 30,
+    color: '#2D3748',
+    letterSpacing: 0.5,
     marginBottom: 5,
   },
-  bookTitle: {
-    fontSize: 14,
+  progressText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4A5568',
+    marginTop: 3,
+  },
+  allDoneText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#38A169',
+    marginTop: 5,
+  },
+  bookStack: {
+    flex: 1,
+  },
+  bookStackContent: {
+    padding: 15,
+    paddingBottom: 80,
+  },
+  bookSpineContainer: {
+    marginBottom: 8,
+    position: 'relative',
+  },
+  bookSpine: {
+    height: 55,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderLeftWidth: 5,
+    borderLeftColor: 'rgba(0, 0, 0, 0.2)',
+    borderRightWidth: 3,
+    borderRightColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  bookTop: {
+    position: 'absolute',
+    top: -3,
+    left: 0,
+    right: 0,
+    height: 3,
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 6,
+  },
+  bookSpineIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  bookSpineTitle: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#FFF',
-    textAlign: 'center',
+    flex: 1,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
-  checkmark: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
-    backgroundColor: '#4CAF50',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
+  spineCheckmark: {
+    backgroundColor: '#38A169',
+    borderRadius: 12,
+    width: 28,
+    height: 28,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#FFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
   },
   checkmarkText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#FFF',
   },
-  dayStickerContainer: {
+  stickerShelf: {
     backgroundColor: '#FFF',
-    borderRadius: 15,
+    borderRadius: 12,
     padding: 20,
-    marginTop: 20,
+    marginTop: 15,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#CBD5E0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  dayStickerTitle: {
-    fontSize: 18,
+  stickerLabel: {
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#8B4513',
-    marginBottom: 10,
+    color: '#4A5568',
+    marginBottom: 8,
   },
   daySticker: {
-    fontSize: 60,
+    fontSize: 50,
+  },
+  lockerHook: {
+    position: 'absolute',
+    top: 60,
+    right: 15,
+  },
+  hookBase: {
+    width: 8,
+    height: 20,
+    backgroundColor: '#718096',
+    borderRadius: 4,
+  },
+  hookCurve: {
+    width: 20,
+    height: 15,
+    backgroundColor: '#718096',
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
+    marginTop: -2,
+    marginLeft: -6,
   },
   backButton: {
-    backgroundColor: '#4CAF50',
-    padding: 15,
+    backgroundColor: '#4299E1',
+    padding: 14,
     borderRadius: 10,
-    margin: 10,
+    margin: 8,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#2B6CB0',
   },
   backButtonText: {
     color: '#FFF',
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: 'bold',
   },
 });
