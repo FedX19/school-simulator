@@ -9,7 +9,6 @@ const COVERAGE_RADIUS = 70; // Forgiving hit detection
 const WHOLE_LETTER_THRESHOLD = 0.65; // 65% overall coverage required (easy mode)
 const PER_STROKE_THRESHOLD = 0.45; // 45% coverage per stroke required (easy mode)
 const STROKE_ADVANCE_THRESHOLD = 0.20; // 20% to advance visual hint (easy mode)
-const TEACH_STROKE_COMPLETION = 0.90; // 90% to complete stroke (teach mode)
 const START_RADIUS = 80; // How close first touch must be to stroke start (teach mode)
 const INTERPOLATION_STEP = 8; // Generate intermediate points every ~8px
 const AUTO_COMPLETE_MIN_PROGRESS = 0.60; // Auto-complete requires at least 60% progress (easy mode)
@@ -19,7 +18,7 @@ const ERROR_DISPLAY_TIME = 800; // Show error feedback for 800ms
 
 interface TracingCanvasProps {
   letter: LetterDefinition;
-  onLetterComplete: () => void;
+  onLetterComplete: (payload: { userStrokes: { x: number; y: number }[][] }) => void;
   onProgressUpdate: (progress: number) => void;
   onTraceStart?: () => void;
   onTraceEnd?: () => void;
@@ -135,13 +134,18 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
         const strokeProgress = Math.max(0, maxStrokeIndex) / (activeStroke.points.length - 1);
         setProgress(strokeProgress);
 
-        // Check if stroke is complete
-        if (strokeProgress >= TEACH_STROKE_COMPLETION && !isCompleted) {
+        // Check if stroke is complete (100% completion - must reach the end)
+        if (maxStrokeIndex >= activeStroke.points.length - 1 && !isCompleted) {
           if (activeStrokeIndex >= letter.strokes.length - 1) {
             // Last stroke completed - letter done
             setIsCompleted(true);
             setTimeout(() => {
-              onLetterComplete();
+              // Pass all user strokes to the callback
+              setUserStrokes(prev => {
+                const finalStrokes = currentStroke.length > 0 ? [...prev, currentStroke] : prev;
+                onLetterComplete({ userStrokes: finalStrokes });
+                return finalStrokes;
+              });
             }, 300);
           } else {
             // Advance to next stroke
@@ -194,7 +198,12 @@ export default function TracingCanvas({ letter, onLetterComplete, onProgressUpda
         if ((wholeLetterComplete || shouldAutoComplete) && !isCompleted) {
           setIsCompleted(true);
           setTimeout(() => {
-            onLetterComplete();
+            // Pass all user strokes to the callback
+            setUserStrokes(prev => {
+              const finalStrokes = currentStroke.length > 0 ? [...prev, currentStroke] : prev;
+              onLetterComplete({ userStrokes: finalStrokes });
+              return finalStrokes;
+            });
           }, 300);
         } else {
           // Still advance visual hint stroke
