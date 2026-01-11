@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useProgress } from '@/contexts/progress-context';
+import { shuffleArray } from '@/utils/shuffle';
 
 const { width, height } = Dimensions.get('window');
 
@@ -23,24 +24,24 @@ export default function ReadingGame() {
   const [showResults, setShowResults] = useState(false);
   const [targetLetter, setTargetLetter] = useState('');
   const [balloons, setBalloons] = useState<{ letter: string; id: number }[]>([]);
+  const [shuffledLetters, setShuffledLetters] = useState<string[]>([]);
 
   const balloonPositions = useRef<{ x: Animated.Value; y: Animated.Value }[]>([]).current;
 
   useEffect(() => {
-    if (!showIntro && !showResults && currentRound < LETTERS.length) {
+    if (!showIntro && !showResults && currentRound < shuffledLetters.length) {
       setupRound();
     }
   }, [currentRound, showIntro, showResults]);
 
   const setupRound = () => {
-    const target = LETTERS[currentRound];
+    const target = shuffledLetters[currentRound];
     setTargetLetter(target);
 
     // Create 4 balloons: 1 correct, 3 random wrong letters
-    const wrongLetters = LETTERS.filter(l => l !== target);
-    const shuffled = [...wrongLetters].sort(() => Math.random() - 0.5).slice(0, 3);
-    const allBalloons = [target, ...shuffled]
-      .sort(() => Math.random() - 0.5)
+    const wrongLetters = shuffledLetters.filter(l => l !== target);
+    const shuffledWrong = shuffleArray(wrongLetters).slice(0, 3);
+    const allBalloons = shuffleArray([target, ...shuffledWrong])
       .map((letter, idx) => ({ letter, id: idx }));
 
     setBalloons(allBalloons);
@@ -73,12 +74,21 @@ export default function ReadingGame() {
     });
   };
 
+  const startGame = () => {
+    // Shuffle letter sequence
+    setShuffledLetters(shuffleArray(LETTERS));
+    setCurrentRound(0);
+    setScore(0);
+    setShowResults(false);
+    setShowIntro(false);
+  };
+
   const handleBalloonPress = (letter: string) => {
     if (letter === targetLetter) {
       setScore(score + 1);
     }
 
-    if (currentRound + 1 >= LETTERS.length) {
+    if (currentRound + 1 >= shuffledLetters.length) {
       setShowResults(true);
     } else {
       setCurrentRound(currentRound + 1);
@@ -99,7 +109,7 @@ export default function ReadingGame() {
           <Text style={styles.introText}>Listen carefully and find the right letter.</Text>
           <TouchableOpacity
             style={styles.startButton}
-            onPress={() => setShowIntro(false)}>
+            onPress={startGame}>
             <Text style={styles.startButtonText}>Start Game</Text>
           </TouchableOpacity>
         </View>
@@ -112,7 +122,7 @@ export default function ReadingGame() {
       <View style={styles.container}>
         <View style={styles.resultsContainer}>
           <Text style={styles.resultsTitle}>Great Job!</Text>
-          <Text style={styles.resultsScore}>You got {score} out of {LETTERS.length} letters!</Text>
+          <Text style={styles.resultsScore}>You got {score} out of {shuffledLetters.length} letters!</Text>
           <Text style={styles.resultsEmoji}>🎈✨</Text>
           <TouchableOpacity
             style={styles.completeButton}
@@ -129,7 +139,7 @@ export default function ReadingGame() {
       <View style={styles.header}>
         <Text style={styles.headerText}>Find the letter:</Text>
         <Text style={styles.targetLetter}>{targetLetter}</Text>
-        <Text style={styles.progress}>Letter {currentRound + 1} of {LETTERS.length}</Text>
+        <Text style={styles.progress}>Letter {currentRound + 1} of {shuffledLetters.length}</Text>
       </View>
 
       <View style={styles.gameArea}>

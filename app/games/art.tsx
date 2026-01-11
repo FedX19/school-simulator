@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useProgress } from '@/contexts/progress-context';
+import { shuffleArray } from '@/utils/shuffle';
 
 interface ColorPair {
   name: string;
@@ -64,11 +65,25 @@ export default function ArtGame() {
   const [score, setScore] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
   const [showResults, setShowResults] = useState(false);
+  const [shuffledColors, setShuffledColors] = useState<ColorPair[]>([]);
 
   const totalRounds = 4;
-  const currentColor = COLORS[currentRound];
+  const currentColor = shuffledColors[currentRound];
 
   const startGame = () => {
+    // Shuffle colors order
+    const shuffledList = shuffleArray(COLORS);
+
+    // Shuffle options for each color
+    const colorsWithShuffledOptions = shuffledList.map(c => ({
+      ...c,
+      options: shuffleArray(c.options),
+    }));
+
+    setShuffledColors(colorsWithShuffledOptions);
+    setCurrentRound(0);
+    setScore(0);
+    setShowResults(false);
     setShowIntro(false);
   };
 
@@ -118,6 +133,16 @@ export default function ArtGame() {
             onPress={handleComplete}>
             <Text style={styles.completeButtonText}>Complete Art ✓</Text>
           </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  if (!currentColor) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.gameArea}>
+          <Text>Loading...</Text>
         </View>
       </View>
     );

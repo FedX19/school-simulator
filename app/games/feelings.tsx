@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useProgress } from '@/contexts/progress-context';
+import { shuffleArray } from '@/utils/shuffle';
 
 interface FeelingPair {
   emoji: string;
@@ -30,11 +31,25 @@ export default function FeelingsGame() {
   const [score, setScore] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
   const [showResults, setShowResults] = useState(false);
+  const [shuffledFeelings, setShuffledFeelings] = useState<FeelingPair[]>([]);
 
   const totalRounds = 6;
-  const currentFeeling = FEELINGS[currentRound];
+  const currentFeeling = shuffledFeelings[currentRound];
 
   const startGame = () => {
+    // Shuffle feelings order
+    const shuffledList = shuffleArray(FEELINGS);
+
+    // Shuffle options for each feeling
+    const feelingsWithShuffledOptions = shuffledList.map(f => ({
+      ...f,
+      options: shuffleArray(f.options),
+    }));
+
+    setShuffledFeelings(feelingsWithShuffledOptions);
+    setCurrentRound(0);
+    setScore(0);
+    setShowResults(false);
     setShowIntro(false);
   };
 
@@ -84,6 +99,16 @@ export default function FeelingsGame() {
             onPress={handleComplete}>
             <Text style={styles.completeButtonText}>Complete Feelings ✓</Text>
           </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  if (!currentFeeling) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.gameArea}>
+          <Text>Loading...</Text>
         </View>
       </View>
     );

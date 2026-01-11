@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useProgress } from '@/contexts/progress-context';
+import { shuffleArray } from '@/utils/shuffle';
 
 const { width } = Dimensions.get('window');
 
@@ -34,11 +35,25 @@ export default function SocialStudiesGame() {
   const [score, setScore] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
   const [showResults, setShowResults] = useState(false);
+  const [shuffledHelpers, setShuffledHelpers] = useState<HelperPair[]>([]);
 
   const totalRounds = 6;
-  const currentHelper = HELPERS[currentRound];
+  const currentHelper = shuffledHelpers[currentRound];
 
   const startGame = () => {
+    // Shuffle helpers order
+    const shuffledList = shuffleArray(HELPERS);
+
+    // Shuffle options for each helper
+    const helpersWithShuffledOptions = shuffledList.map(h => ({
+      ...h,
+      options: shuffleArray(h.options),
+    }));
+
+    setShuffledHelpers(helpersWithShuffledOptions);
+    setCurrentRound(0);
+    setScore(0);
+    setShowResults(false);
     setShowIntro(false);
   };
 
@@ -88,6 +103,16 @@ export default function SocialStudiesGame() {
             onPress={handleComplete}>
             <Text style={styles.completeButtonText}>Complete Social Studies ✓</Text>
           </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  if (!currentHelper) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.gameArea}>
+          <Text>Loading...</Text>
         </View>
       </View>
     );
