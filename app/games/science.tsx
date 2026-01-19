@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useProgress } from '@/contexts/progress-context';
-import { Audio } from 'expo-av';
+import * as Speech from 'expo-speech';
 
 const { width } = Dimensions.get('window');
 
@@ -17,33 +17,33 @@ interface Animal {
   id: string;
   emoji: string;
   name: string;
-  soundFile: any; // require() asset
+  sound: string; // Text-to-speech phrase
 }
 
 // Pool of 20+ animals for variety
 const ANIMAL_POOL: Animal[] = [
-  { id: 'dog', emoji: '🐶', name: 'Dog', soundFile: require('@/assets/sounds/dog.mp3') },
-  { id: 'cat', emoji: '🐱', name: 'Cat', soundFile: require('@/assets/sounds/cat.mp3') },
-  { id: 'cow', emoji: '🐮', name: 'Cow', soundFile: require('@/assets/sounds/cow.mp3') },
-  { id: 'duck', emoji: '🦆', name: 'Duck', soundFile: require('@/assets/sounds/duck.mp3') },
-  { id: 'frog', emoji: '🐸', name: 'Frog', soundFile: require('@/assets/sounds/frog.mp3') },
-  { id: 'lion', emoji: '🦁', name: 'Lion', soundFile: require('@/assets/sounds/lion.mp3') },
-  { id: 'pig', emoji: '🐷', name: 'Pig', soundFile: require('@/assets/sounds/pig.mp3') },
-  { id: 'bee', emoji: '🐝', name: 'Bee', soundFile: require('@/assets/sounds/bee.mp3') },
-  { id: 'horse', emoji: '🐴', name: 'Horse', soundFile: require('@/assets/sounds/horse.mp3') },
-  { id: 'sheep', emoji: '🐑', name: 'Sheep', soundFile: require('@/assets/sounds/sheep.mp3') },
-  { id: 'rooster', emoji: '🐓', name: 'Rooster', soundFile: require('@/assets/sounds/rooster.mp3') },
-  { id: 'elephant', emoji: '🐘', name: 'Elephant', soundFile: require('@/assets/sounds/elephant.mp3') },
-  { id: 'bird', emoji: '🐦', name: 'Bird', soundFile: require('@/assets/sounds/bird.mp3') },
-  { id: 'owl', emoji: '🦉', name: 'Owl', soundFile: require('@/assets/sounds/owl.mp3') },
-  { id: 'monkey', emoji: '🐵', name: 'Monkey', soundFile: require('@/assets/sounds/monkey.mp3') },
-  { id: 'wolf', emoji: '🐺', name: 'Wolf', soundFile: require('@/assets/sounds/wolf.mp3') },
-  { id: 'chicken', emoji: '🐔', name: 'Chicken', soundFile: require('@/assets/sounds/chicken.mp3') },
-  { id: 'snake', emoji: '🐍', name: 'Snake', soundFile: require('@/assets/sounds/snake.mp3') },
-  { id: 'cricket', emoji: '🦗', name: 'Cricket', soundFile: require('@/assets/sounds/cricket.mp3') },
-  { id: 'dolphin', emoji: '🐬', name: 'Dolphin', soundFile: require('@/assets/sounds/dolphin.mp3') },
-  { id: 'goat', emoji: '🐐', name: 'Goat', soundFile: require('@/assets/sounds/goat.mp3') },
-  { id: 'turkey', emoji: '🦃', name: 'Turkey', soundFile: require('@/assets/sounds/turkey.mp3') },
+  { id: 'dog', emoji: '🐶', name: 'Dog', sound: 'Woof woof! I am a dog' },
+  { id: 'cat', emoji: '🐱', name: 'Cat', sound: 'Meow meow! I am a cat' },
+  { id: 'cow', emoji: '🐮', name: 'Cow', sound: 'Moo moo! I am a cow' },
+  { id: 'duck', emoji: '🦆', name: 'Duck', sound: 'Quack quack! I am a duck' },
+  { id: 'frog', emoji: '🐸', name: 'Frog', sound: 'Ribbit ribbit! I am a frog' },
+  { id: 'lion', emoji: '🦁', name: 'Lion', sound: 'Roar roar! I am a lion' },
+  { id: 'pig', emoji: '🐷', name: 'Pig', sound: 'Oink oink! I am a pig' },
+  { id: 'bee', emoji: '🐝', name: 'Bee', sound: 'Buzz buzz! I am a bee' },
+  { id: 'horse', emoji: '🐴', name: 'Horse', sound: 'Neigh neigh! I am a horse' },
+  { id: 'sheep', emoji: '🐑', name: 'Sheep', sound: 'Baa baa! I am a sheep' },
+  { id: 'rooster', emoji: '🐓', name: 'Rooster', sound: 'Cock-a-doodle-doo! I am a rooster' },
+  { id: 'elephant', emoji: '🐘', name: 'Elephant', sound: 'I am an elephant with a long trunk' },
+  { id: 'bird', emoji: '🐦', name: 'Bird', sound: 'Tweet tweet! I am a bird' },
+  { id: 'owl', emoji: '🦉', name: 'Owl', sound: 'Hoo hoo! I am an owl' },
+  { id: 'monkey', emoji: '🐵', name: 'Monkey', sound: 'Ooh ooh ahh ahh! I am a monkey' },
+  { id: 'wolf', emoji: '🐺', name: 'Wolf', sound: 'Awoo awoo! I am a wolf' },
+  { id: 'chicken', emoji: '🐔', name: 'Chicken', sound: 'Cluck cluck! I am a chicken' },
+  { id: 'snake', emoji: '🐍', name: 'Snake', sound: 'Hiss hiss! I am a snake' },
+  { id: 'cricket', emoji: '🦗', name: 'Cricket', sound: 'Chirp chirp! I am a cricket' },
+  { id: 'dolphin', emoji: '🐬', name: 'Dolphin', sound: 'Click click! I am a dolphin' },
+  { id: 'goat', emoji: '🐐', name: 'Goat', sound: 'Maa maa! I am a goat' },
+  { id: 'turkey', emoji: '🦃', name: 'Turkey', sound: 'Gobble gobble! I am a turkey' },
 ];
 
 interface Question {
@@ -95,16 +95,11 @@ export default function ScienceGame() {
   const [correctCount, setCorrectCount] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
-  const [soundLoading, setSoundLoading] = useState(false);
-
-  const soundRef = useRef<Audio.Sound | null>(null);
 
   useEffect(() => {
     return () => {
-      // Cleanup sound on unmount
-      if (soundRef.current) {
-        soundRef.current.unloadAsync();
-      }
+      // Cleanup speech on unmount
+      Speech.stop();
     };
   }, []);
 
@@ -119,28 +114,23 @@ export default function ScienceGame() {
     setShowResults(false);
   };
 
-  const playSound = async (soundFile: any) => {
-    try {
-      setSoundLoading(true);
-      // Unload previous sound if any
-      if (soundRef.current) {
-        await soundRef.current.unloadAsync();
-      }
-      const { sound } = await Audio.Sound.createAsync(soundFile);
-      soundRef.current = sound;
-      await sound.playAsync();
-      setSoundLoading(false);
-    } catch (error) {
-      console.error('Error playing sound:', error);
-      setSoundLoading(false);
-    }
+  const playSound = async (soundText: string) => {
+    // Stop any currently playing speech
+    await Speech.stop();
+
+    // Speak the animal sound using text-to-speech
+    Speech.speak(soundText, {
+      language: 'en-US',
+      pitch: 1.0,
+      rate: 0.85, // Slightly slower for kindergarten
+    });
   };
 
   useEffect(() => {
     // Auto-play sound when question changes
     if (!showIntro && !showResults && questions.length > 0 && currentQuestionIndex < questions.length) {
       const question = questions[currentQuestionIndex];
-      playSound(question.correct.soundFile);
+      playSound(question.correct.sound);
     }
   }, [currentQuestionIndex, questions, showIntro, showResults]);
 
@@ -279,16 +269,9 @@ export default function ScienceGame() {
         {/* Play Sound Button */}
         <TouchableOpacity
           style={styles.soundButton}
-          onPress={() => playSound(question.correct.soundFile)}
-          disabled={soundLoading}>
-          {soundLoading ? (
-            <ActivityIndicator size="large" color="#FFF" />
-          ) : (
-            <>
-              <Text style={styles.soundButtonEmoji}>🔊</Text>
-              <Text style={styles.soundButtonText}>Tap to Hear Sound</Text>
-            </>
-          )}
+          onPress={() => playSound(question.correct.sound)}>
+          <Text style={styles.soundButtonEmoji}>🔊</Text>
+          <Text style={styles.soundButtonText}>Tap to Hear Sound</Text>
         </TouchableOpacity>
 
         {/* Choice Grid */}
