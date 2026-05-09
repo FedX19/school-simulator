@@ -127,8 +127,12 @@ export const LETTER_DEFINITIONS: LetterDefinition[] = [
         ...createLinePoints(0.3, 0.9, 0.6, 0.9, 35),
         ...createLinePoints(0.6, 0.9, 0.8, 0.75, 30),
       ] },
-      { points: createLinePoints(0.8, 0.75, 0.8, 0.5, 40),
-               ...createLinePoints(0.8, 0.5, 0.5, 0.5, 40) }, // Horizontal bar
+      {
+        points: [
+          ...createLinePoints(0.8, 0.75, 0.8, 0.5, 40),
+          ...createLinePoints(0.8, 0.5, 0.5, 0.5, 40),
+        ],
+      },
     ],
   },
 

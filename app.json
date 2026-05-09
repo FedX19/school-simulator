@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "school-simulator",
-    "slug": "school-simulator",
+    "name": "School Quest Home",
+    "slug": "school-quest-home",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fedx19.schoolquesthome"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +20,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.fedx19.schoolquesthome"
     },
     "web": {
       "output": "static",
